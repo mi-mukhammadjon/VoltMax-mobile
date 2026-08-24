@@ -7,6 +7,24 @@
 
 ---
 
+## 0. Keyingi vazifalar (ustuvorlik tartibida)
+
+Ushbu ro'yxat to'g'ridan-to'g'ri bajarish uchun mo'ljallangan — har biri mustaqil, aniq chegarada.
+
+- [ ] **Muhit tekshiruvi:** `npm install` va `npx tsc --noEmit` ishga tushirib, hozirgi holat toza ekanini tasdiqlash (oxirgi safar 2026-08-24 sanasida ikkalasi ham xatosiz o'tgan)
+- [ ] **Pastki tab navigatsiya:** `@react-navigation/bottom-tabs` qo'shish, `AppNavigator.tsx`ni Tab (Asosiy/Stansiyalar/Zaryadlash/Sevimli/Profil) + nested Stack qilib qayta qurish (7-bo'limga qarang)
+- [ ] **OnboardingScreen** to'ldirish: gradient fon, brend logotipi/animatsiya, "Boshlash" tugmasi → Map/Auth'ga navigatsiya
+- [ ] **WalletScreen** to'ldirish: balans kartasi, Payme/Click tugmalari, "Hisobni to'ldirish" oqimi, tranzaksiyalar ro'yxati (`WalletAPI` allaqachon `src/services/api.ts`da stub qilingan)
+- [ ] **HistoryScreen** to'ldirish: sessiyalar ro'yxati + oylik xarajat grafigi (chart kutubxonasi hali tanlanmagan)
+- [ ] **Auth oqimi**: login/OTP ekranlari (hali umuman yo'q)
+- [ ] **Backend integratsiyasi**: 8-bo'limdagi har bir mock→API almashtirish qadamini bajarish
+- [ ] **Font**: Inter shrift fayllarini `expo-font` orqali ulash (`App.tsx`da `useFonts`)
+- [ ] **Google Maps API kaliti**: `app.json`ga `ios.config.googleMapsApiKey` / `android.config.googleMaps.apiKey` qo'shish
+
+Har bir vazifa alohida branch/commit sifatida bajarilishi tavsiya etiladi — repo git bilan ishga tushirilgan (`git log` orqali boshlang'ich commitni ko'rish mumkin).
+
+---
+
 ## 1. Loyiha haqida qisqacha
 
 VoltMax — Toshkentda joylashgan EV (elektromobil) zaryadlash stansiyalari tarmog'i uchun premium mobil ilova. Foydalanuvchi yaqin atrofdagi stansiyalarni xaritada yoki ro'yxatda ko'radi, stansiya detaliga kirib ulagichni (connector) tanlaydi, zaryadlashni boshlaydi, real-vaqtda jarayonni kuzatadi va Payme/Click orqali to'laydi.
