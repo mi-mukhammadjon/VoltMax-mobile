@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "VoltMax",
+    "slug": "voltmax-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "voltmax",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0B1220"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "uz.voltmax.app"
+    },
+    "android": {
+      "package": "uz.voltmax.app"
+    }
+  }
+}
