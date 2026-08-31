@@ -31,6 +31,8 @@ export interface StartChargingOptions {
   /** Har bosqich boshlanganda chaqiriladi */
   onStage?: (stage: ChargingStage) => void;
   cancelRef?: { current: boolean };
+  /** Foydalanuvchi kiritgan promo-kod (ixtiyoriy) */
+  promoCode?: string;
 }
 
 export async function startChargingSession(
@@ -39,7 +41,7 @@ export async function startChargingSession(
   options?: StartChargingOptions
 ): Promise<ChargingSession> {
   options?.onStage?.('requesting');
-  const res = await SessionsAPI.start(stationId, connectorId);
+  const res = await SessionsAPI.start(stationId, connectorId, options?.promoCode);
   if (res.status === 201) {
     options?.onStage?.('started');
     return res.data as ChargingSession;

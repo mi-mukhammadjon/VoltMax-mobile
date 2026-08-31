@@ -1,4 +1,4 @@
-﻿# VoltMax — EV zaryadlash mobil ilovasi
+# VoltMax — EV zaryadlash mobil ilovasi
 
 Premium EV zaryadlash stansiyalarini topish, zaryadlashni boshqarish va to'lov qilish uchun React Native (Expo) ilovasi.
 
@@ -90,6 +90,19 @@ kelganini faqat to'lov tizimi tasdiqlaydi va u haqda serverga xabar
 beradi. Ilovaga qaytgach holat so'raladi.
 
 Sozlanmagan to'lov tizimi ro'yxatda umuman ko'rinmaydi.
+
+### Narx va promo-kod
+
+Stansiyaning narxi tarif oynasi (tungi tarif) va avtomatik aksiyalarni
+allaqachon hisobga olgan holda keladi. Chegirma bo'lsa eski narx chizib
+ko'rsatiladi va yonida **sababi** yoziladi — sababsiz arzon narx
+foydalanuvchida "to'lovda boshqa summa chiqadimi" degan shubha
+uyg'otadi.
+
+Promo-kod stansiya sahifasida kiritiladi va **zaryadlashdan oldin**
+tekshiriladi: kod yaroqli bo'lsa yangi narx darhol ko'rsatiladi.
+Tekshirilmagan kod serverga yuborilmaydi, chunki yaroqsiz kod bilan
+server sessiyani umuman boshlamaydi.
 
 ### Push xabarlar
 

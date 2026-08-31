@@ -124,6 +124,14 @@ export default function StationDetailScreen({ route }: Props) {
   const [myComment, setMyComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
 
+  // Promo-kod. Kod sessiya boshlashdan OLDIN tekshiriladi: chegirma
+  // ishlamaganini zaryadlash tugagach bilish eng noqulay payt.
+  const [promoCode, setPromoCode] = useState('');
+  const [promoChecking, setPromoChecking] = useState(false);
+  const [promoResult, setPromoResult] = useState<
+    { ok: true; title: string; price: number; saved: number } | { ok: false; detail: string } | null
+  >(null);
+
   useEffect(() => {
     setReviewsLoading(true);
     ReviewsAPI.list(stationId)
@@ -167,6 +175,29 @@ export default function StationDetailScreen({ route }: Props) {
   const hasDiscount = !!station?.originalPricePerKwh && station.originalPricePerKwh > station.pricePerKwh;
   const availableConnector = station?.connectors?.find((c) => c.status === 'available');
 
+  const handleCheckPromo = async () => {
+    const code = promoCode.trim();
+    if (!code || !station || promoChecking) return;
+    setPromoChecking(true);
+    try {
+      const res = await StationsAPI.checkPromo(station.id, code);
+      if (res.status === 200) {
+        setPromoResult({
+          ok: true,
+          title: res.data.title,
+          price: res.data.pricePerKwh,
+          saved: res.data.savedPerKwh,
+        });
+      } else {
+        setPromoResult({ ok: false, detail: res.data?.detail || "Kod ishlamadi" });
+      }
+    } catch (err: any) {
+      setPromoResult({ ok: false, detail: "Kodni tekshirib bo'lmadi" });
+    } finally {
+      setPromoChecking(false);
+    }
+  };
+
   const handleConnectorPress = async (connector: Connector) => {
     if (connector.status !== 'available' || !station || starting) return;
     setStarting(true);
@@ -181,6 +212,10 @@ export default function StationDetailScreen({ route }: Props) {
       const session = await startChargingSession(station.id, connector.id, {
         onStage: setStage,
         cancelRef: cancelStartRef,
+        // Faqat TEKSHIRILGAN kod yuboriladi: yaroqsiz kod bilan server
+        // sessiyani umuman boshlamaydi va foydalanuvchi zaryadlashsiz
+        // qolardi
+        promoCode: promoResult?.ok ? promoCode.trim() : undefined,
       });
       setActiveSession(session);
       navigation.navigate('ChargingSession', { sessionId: session.id });
@@ -335,11 +370,57 @@ export default function StationDetailScreen({ route }: Props) {
                       </Text>
                     )}
                   </View>
+                  {/* Chegirmaning sababi: "Tungi tarif" yoki aksiya nomi.
+                      Sababsiz arzon narx ishonch uyg'otmaydi — foydalanuvchi
+                      to'lov paytida boshqa summa chiqishidan xavotirlanadi. */}
+                  {!!station.priceReason && (
+                    <Text style={styles.priceReason}>{station.priceReason}</Text>
+                  )}
                 </View>
                 <View style={styles.powerPill}>
                   <Text style={styles.powerPillText}>{station.powerKw} kVt</Text>
                 </View>
               </View>
+
+              {/* Promo-kod. Tekshirilgach yangi narx darhol ko'rsatiladi —
+                  foydalanuvchi zaryadlashni boshlashdan oldin nima
+                  o'zgarganini ko'radi. */}
+              <Text style={styles.sectionLabel}>Promo-kod</Text>
+              <View style={styles.promoRow}>
+                <TextInput
+                  style={styles.promoInput}
+                  value={promoCode}
+                  onChangeText={(text) => {
+                    setPromoCode(text.toUpperCase());
+                    setPromoResult(null);
+                  }}
+                  placeholder="Masalan: VOLT2026"
+                  placeholderTextColor={colors.textMuted}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity
+                  style={[styles.promoButton, !promoCode.trim() && styles.promoButtonOff]}
+                  onPress={handleCheckPromo}
+                  disabled={!promoCode.trim() || promoChecking}
+                >
+                  {promoChecking ? (
+                    <ActivityIndicator size="small" color={colors.bgPrimary} />
+                  ) : (
+                    <Text style={styles.promoButtonText}>Tekshirish</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+              {promoResult && (
+                <Text
+                  style={promoResult.ok ? styles.promoOk : styles.promoError}
+                >
+                  {promoResult.ok
+                    ? `${promoResult.title} — ${formatSom(promoResult.price)} so'm/kVt·s ` +
+                      `(${formatSom(promoResult.saved)} so'm chegirma)`
+                    : promoResult.detail}
+                </Text>
+              )}
 
               <Text style={styles.sectionLabel}>Qulayliklar</Text>
               {station.amenities?.length ? (
@@ -678,6 +759,53 @@ const createStyles = (colors: ColorPalette) =>
       color: colors.textMuted,
       fontSize: typography.size.sm,
       textDecorationLine: 'line-through',
+    },
+    priceReason: {
+      color: colors.accent,
+      fontSize: typography.size.xs,
+      fontFamily: typography.fontFamily.semibold,
+      marginTop: 2,
+    },
+    promoRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      alignItems: 'center',
+    },
+    promoInput: {
+      flex: 1,
+      backgroundColor: colors.bgSecondary,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      color: colors.textPrimary,
+      fontFamily: typography.fontFamily.medium,
+      fontSize: typography.size.base,
+    },
+    promoButton: {
+      backgroundColor: colors.accent,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm + 2,
+      minWidth: 104,
+      alignItems: 'center',
+    },
+    promoButtonOff: { opacity: 0.45 },
+    promoButtonText: {
+      color: colors.bgPrimary,
+      fontFamily: typography.fontFamily.semibold,
+      fontSize: typography.size.sm,
+    },
+    promoOk: {
+      color: colors.statusAvailable,
+      fontSize: typography.size.sm,
+      fontFamily: typography.fontFamily.medium,
+      marginTop: spacing.sm,
+    },
+    promoError: {
+      color: colors.statusError,
+      fontSize: typography.size.sm,
+      fontFamily: typography.fontFamily.medium,
+      marginTop: spacing.sm,
     },
     powerPill: {
       paddingHorizontal: spacing.md,

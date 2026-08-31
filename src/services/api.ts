@@ -94,6 +94,14 @@ export const AuthAPI = {
 export const StationsAPI = {
   list: () => apiClient.get('/stations/'),
   getById: (id: string) => apiClient.get(`/stations/${id}/`),
+  // Promo-kod sessiya boshlashdan OLDIN tekshiriladi va yangi narx
+  // ko'rsatiladi. 400 — kod yaroqsiz, `detail` da sababi keladi.
+  checkPromo: (stationId: string, code: string) =>
+    apiClient.post(
+      '/stations/promo/check/',
+      { stationId: Number(stationId), code },
+      { validateStatus: (status) => status === 200 || status === 400 }
+    ),
 };
 
 export const ReviewsAPI = {
@@ -151,10 +159,16 @@ export const SessionsAPI = {
   // Haqiqiy charger'ga ulangan stansiyalarda backend darhol sessiya qaytarmaydi —
   // 202 { pending: true } qaytaradi va RemoteStartTransaction charger'ga yuboriladi;
   // `validateStatus` shu holatni ham "xato emas" deb hisoblashi uchun kengaytiriladi.
-  start: (stationId: string, connectorId?: string) =>
+  start: (stationId: string, connectorId?: string, promoCode?: string) =>
     apiClient.post(
       '/sessions/start/',
-      { stationId: Number(stationId), connectorId: connectorId ? Number(connectorId) : undefined },
+      {
+        stationId: Number(stationId),
+        connectorId: connectorId ? Number(connectorId) : undefined,
+        // Bo'sh kod umuman yuborilmaydi: server uni tekshirishga urinib
+        // "kod kiritilmadi" deb rad etardi
+        promoCode: promoCode?.trim() || undefined,
+      },
       { validateStatus: (status) => status === 201 || status === 202 }
     ),
   getActive: () => apiClient.get('/sessions/active/', { validateStatus: (status) => status === 200 || status === 204 }),

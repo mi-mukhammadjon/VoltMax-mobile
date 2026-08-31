@@ -238,6 +238,10 @@ export default function StationDetailSheet({
                 <Text style={styles.priceUnit}>1 kVt uchun</Text>
               </Text>
             )}
+            {/* Chegirmaning sababi — "Tungi tarif" yoki aksiya nomi */}
+            {!!station.priceReason && (
+              <Text style={styles.priceReason}>{station.priceReason}</Text>
+            )}
           </View>
 
           <Text style={styles.sectionLabel}>Ulagichlar</Text>
@@ -432,6 +436,12 @@ const createStyles = (colors: ColorPalette) =>
     fontSize: typography.size.sm,
     textDecorationLine: 'line-through',
     marginTop: 2,
+  },
+  priceReason: {
+    color: colors.accent,
+    fontSize: typography.size.xs,
+    fontFamily: typography.fontFamily.semibold,
+    marginTop: 4,
   },
   priceUnit: {
     textDecorationLine: 'none',

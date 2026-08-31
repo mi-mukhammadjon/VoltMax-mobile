@@ -256,6 +256,15 @@ export default function ChargingSessionScreen({ route }: Props) {
               </View>
               <Text style={styles.infoTileValue}>{formatSom(session.pricePerKwh)} so'm</Text>
             </View>
+            {/* Chegirma sababi va tejalgan summa. Narx sessiya
+                boshlanganda muzlatilgan, shuning uchun bu qiymat
+                sessiya davomida o'zgarmaydi. */}
+            {!!session.priceLabel && (
+              <Text style={styles.savedNote}>
+                {session.priceLabel}
+                {!!session.savedAmount && ` · ${formatSom(session.savedAmount)} so'm tejaldi`}
+              </Text>
+            )}
           </View>
 
           <View style={styles.infoTile}>
@@ -487,6 +496,12 @@ const createStyles = (colors: ColorPalette) =>
       color: colors.textPrimary,
       fontSize: typography.size.sm,
       fontFamily: typography.fontFamily.semibold,
+    },
+    savedNote: {
+      color: colors.accent,
+      fontSize: typography.size.xs,
+      fontFamily: typography.fontFamily.medium,
+      marginTop: 4,
     },
     paymentLabel: {
       color: colors.textSecondary,

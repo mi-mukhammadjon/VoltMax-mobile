@@ -44,6 +44,9 @@ export interface Station {
   powerKw: number;
   pricePerKwh: number; // joriy (chegirmali) narx, so'mda
   originalPricePerKwh?: number; // chegirmagacha bo'lgan narx
+  /** Narx nima uchun past: "Tungi tarif" yoki aksiya nomi. Sababsiz
+   *  chegirma ishonch uyg'otmaydi, shuning uchun u har doim ko'rsatiladi. */
+  priceReason?: string;
   status: StationStatus;
   rating?: number;
   reviewCount?: number;
@@ -80,6 +83,15 @@ export interface ChargingSession {
   parkingCost?: number;
   /** Parkovkaning allaqachon hamyondan yechilgan qismi (daqiqalik hisob) */
   parkingPaid?: number;
+
+  // Chegirma. Narx sessiya boshlanganda muzlatiladi, shuning uchun bu
+  // qiymatlar keyin aksiya o'chirilsa ham o'zgarmaydi.
+  /** Chegirmasiz narx — chizib ko'rsatiladi */
+  basePricePerKwh?: number;
+  /** Shu sessiyada tejalgan summa, so'mda */
+  savedAmount?: number;
+  /** Chegirma sababi: "Tungi tarif · Bahorgi aksiya" */
+  priceLabel?: string;
 }
 
 export interface WalletBalance {
