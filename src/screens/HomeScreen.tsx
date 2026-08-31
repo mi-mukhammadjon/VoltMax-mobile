@@ -79,6 +79,7 @@ export default function HomeScreen() {
   const phone = useAuthStore((s) => s.phone);
   const name = useAuthStore((s) => s.name);
   const setName = useAuthStore((s) => s.setName);
+  const setAvatarUrl = useAuthStore((s) => s.setAvatarUrl);
 
   const [insights, setInsights] = useState<SessionInsights | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,11 +92,16 @@ export default function HomeScreen() {
       StationsAPI.list().then((res) => setStations(res.data.results ?? res.data)),
       WalletAPI.getBalance().then((res) => setWalletBalance(res.data)),
       SessionsAPI.getInsights().then((res) => setInsights(res.data)),
-      // Ism profilda o'zgargan bo'lishi mumkin — salomlashuv doim dolzarb bo'lsin
-      AuthAPI.getProfile().then((res) => setName(res.data.name ?? null)),
+      // Ism va rasm profilda o'zgargan bo'lishi mumkin — salomlashuv va
+      // avatar doim dolzarb bo'lsin. Rasm boshqa qurilmadan
+      // almashtirilgan bo'lishi ham mumkin.
+      AuthAPI.getProfile().then((res) => {
+        setName(res.data.name ?? null);
+        setAvatarUrl(res.data.avatarUrl ?? null);
+      }),
     ]);
     setLoading(false);
-  }, [setStations, setWalletBalance, setName]);
+  }, [setStations, setWalletBalance, setName, setAvatarUrl]);
 
   useEffect(() => {
     load();

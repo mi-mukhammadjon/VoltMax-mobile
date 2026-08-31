@@ -10,6 +10,8 @@ interface AuthState {
   phone: string | null;
   /** Profilda kiritilgan ism. Bo'sh bo'lsa UI telefon raqamiga qaytadi. */
   name: string | null;
+  /** Profil rasmi (to'liq manzil) — serverda saqlanadi */
+  avatarUrl: string | null;
   hasHydrated: boolean;
   setTokens: (accessToken: string, refreshToken: string, phone: string) => void;
   // Token yangilanganda faqat `access` almashadi — telefon va ism
@@ -18,6 +20,7 @@ interface AuthState {
   /** Token yangilangach ikkalasini ham saqlaydi (server rotatsiya qiladi) */
   setSession: (accessToken: string, refreshToken: string) => void;
   setName: (name: string | null) => void;
+  setAvatarUrl: (url: string | null) => void;
   logout: () => void;
   setHasHydrated: (value: boolean) => void;
 }
@@ -31,6 +34,7 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       phone: null,
       name: null,
+      avatarUrl: null,
       hasHydrated: false,
       setTokens: (accessToken, refreshToken, phone) => set({ accessToken, refreshToken, phone }),
       setAccessToken: (accessToken) => set({ accessToken }),
@@ -40,6 +44,7 @@ export const useAuthStore = create<AuthState>()(
       setSession: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
       // Bo'sh matn ham "ism yo'q" degani — UI ni bo'sh sarlavha bilan qoldirmaslik uchun
       setName: (name) => set({ name: name?.trim() ? name.trim() : null }),
+      setAvatarUrl: (avatarUrl) => set({ avatarUrl }),
       logout: () => {
         // Push manzili ham o'chiriladi: telefon boshqa odamga o'tsa, unga
         // avvalgi egasining xabarlari kelaverardi
@@ -53,7 +58,8 @@ export const useAuthStore = create<AuthState>()(
         // internet yo'q joyda ham foydalanuvchi chiqa olishi shart.
         revokeSession(get().refreshToken);
 
-        set({ accessToken: null, refreshToken: null, phone: null, name: null });
+        set({ accessToken: null, refreshToken: null, phone: null, name: null,
+              avatarUrl: null });
       },
       setHasHydrated: (value) => set({ hasHydrated: value }),
     }),
@@ -65,6 +71,7 @@ export const useAuthStore = create<AuthState>()(
         refreshToken: state.refreshToken,
         phone: state.phone,
         name: state.name,
+        avatarUrl: state.avatarUrl,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);

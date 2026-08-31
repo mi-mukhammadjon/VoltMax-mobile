@@ -95,6 +95,30 @@ export const AuthAPI = {
   deleteProfile: () => apiClient.delete('/auth/profile/'),
 };
 
+export const AvatarAPI = {
+  /**
+   * Profil rasmini yuklaydi.
+   *
+   * `FormData` bilan ketadi va `Content-Type` ATAYLAB qo'yilmaydi:
+   * chegara satrini (boundary) muhitning o'zi qo'shishi kerak, qo'lda
+   * yozilgan sarlavha uni buzadi va server faylni ko'rmaydi.
+   *
+   * Rasm serverda kichraytiriladi va EXIF tozalanadi — telefondagi
+   * surat 4-8 MB bo'ladi va u bilan birga suratga olingan joy
+   * koordinatalari ham ketardi.
+   */
+  upload: (uri: string) => {
+    const form = new FormData();
+    const name = uri.split('/').pop() || 'avatar.jpg';
+    const match = /\.(\w+)$/.exec(name);
+    const type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
+
+    form.append('avatar', { uri, name, type } as unknown as Blob);
+    return apiClient.post('/auth/avatar/', form, { timeout: 60000 });
+  },
+  remove: () => apiClient.delete('/auth/avatar/'),
+};
+
 export const StationsAPI = {
   list: () => apiClient.get('/stations/'),
   getById: (id: string) => apiClient.get(`/stations/${id}/`),

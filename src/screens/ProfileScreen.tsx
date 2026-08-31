@@ -1,5 +1,14 @@
-import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Image,
+  ActivityIndicator,
+} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, CommonActions, CompositeNavigationProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -28,7 +37,7 @@ import { useThemeStore, ThemeMode } from '@/store/useThemeStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAppStore } from '@/store/useAppStore';
 import { showAlert } from '@/services/alert';
-import { AuthAPI } from '@/services/api';
+import { AuthAPI, AvatarAPI } from '@/services/api';
 import Card from '@/components/Card';
 import { formatSom } from '@/utils/money';
 
@@ -86,8 +95,77 @@ export default function ProfileScreen() {
   const setMode = useThemeStore((s) => s.setMode);
   const phone = useAuthStore((s) => s.phone);
   const name = useAuthStore((s) => s.name);
+  const avatarUrl = useAuthStore((s) => s.avatarUrl);
+  const setAvatarUrl = useAuthStore((s) => s.setAvatarUrl);
+  const [uploading, setUploading] = useState(false);
   const logout = useAuthStore((s) => s.logout);
   const walletBalance = useAppStore((s) => s.walletBalance);
+
+  /**
+   * Galereyadan rasm tanlab, serverga yuklaydi.
+   *
+   * Rasm SERVERDA kichraytiriladi, shuning uchun bu yerda faqat qirqish
+   * so'raladi: foydalanuvchi qaysi qismi ko'rinishini o'zi tanlasin.
+   * Sifatni ham biroz tushiramiz — 4-8 MB lik surat mobil internetda
+   * uzoq yuklanardi.
+   */
+  const handleAvatarPress = async () => {
+    if (uploading) return;
+
+    // Ruxsat so'raladi. Rad etilsa sabab aytiladi: "hech narsa
+    // bo'lmadi" degan holat foydalanuvchini chalg'itadi.
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      showAlert(
+        'Ruxsat kerak',
+        "Rasm tanlash uchun galereyaga kirishga ruxsat bering",
+        undefined,
+        'error'
+      );
+      return;
+    }
+
+    const picked = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (picked.canceled || !picked.assets?.length) return;
+
+    setUploading(true);
+    try {
+      const res = await AvatarAPI.upload(picked.assets[0].uri);
+      setAvatarUrl(res.data?.avatarUrl ?? null);
+    } catch (err: any) {
+      showAlert(
+        'Xatolik',
+        err?.response?.data?.detail || "Rasmni yuklab bo'lmadi",
+        undefined,
+        'error'
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    showAlert("Rasmni o'chirish", 'Profil rasmi olib tashlansinmi?', [
+      { text: 'Bekor qilish', style: 'cancel' },
+      {
+        text: "O'chirish",
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await AvatarAPI.remove();
+            setAvatarUrl(null);
+          } catch {
+            showAlert('Xatolik', "O'chirib bo'lmadi", undefined, 'error');
+          }
+        },
+      },
+    ]);
+  };
 
   const handleLogout = () => {
     showAlert(
@@ -153,12 +231,36 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.identity}>
-        <View style={styles.avatar}>
-          <User size={30} color={colors.primary} />
-        </View>
+        {/* Rasmga bosilganda galereya ochiladi. Alohida «Yuklash»
+            tugmasi ortiqcha qadam bo'lardi — rasmning o'ziga bosish
+            odatiy naqsh. */}
+        <TouchableOpacity
+          style={styles.avatar}
+          onPress={handleAvatarPress}
+          disabled={uploading}
+          activeOpacity={0.8}
+        >
+          {uploading ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+          ) : (
+            <User size={30} color={colors.primary} />
+          )}
+          {!uploading && (
+            <View style={styles.avatarBadge}>
+              <Plus size={12} color={colors.bgPrimary} />
+            </View>
+          )}
+        </TouchableOpacity>
         <Text style={styles.name}>{name ?? phone ?? 'Foydalanuvchi'}</Text>
         {/* Ism qo'yilgan bo'lsa pastda telefon raqami, aks holda umumiy yozuv */}
         <Text style={styles.subtitle}>{(name && phone) || 'VoltMax hisobi'}</Text>
+        {!!avatarUrl && (
+          <TouchableOpacity onPress={handleRemoveAvatar} hitSlop={8}>
+            <Text style={styles.avatarRemove}>Rasmni o'chirish</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Hamyon qatori — balans va tezkor to'ldirish */}
@@ -271,6 +373,29 @@ const createStyles = (colors: ColorPalette) =>
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: spacing.sm,
+      // Rasm doiradan chiqib ketmasin
+      overflow: 'hidden',
+    },
+    avatarImage: { width: '100%', height: '100%' },
+    // Kichik belgi: rasm qo'yish MUMKINligini bildiradi. Usiz avatar
+    // shunchaki bezak bo'lib ko'rinardi va hech kim bosmasdi.
+    avatarBadge: {
+      position: 'absolute',
+      right: 2,
+      bottom: 2,
+      width: 22,
+      height: 22,
+      borderRadius: radius.pill,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarRemove: {
+      color: colors.textMuted,
+      fontSize: typography.size.xs,
+      fontFamily: typography.fontFamily.medium,
+      textDecorationLine: 'underline',
+      marginTop: spacing.xs,
     },
     name: {
       color: colors.textPrimary,
