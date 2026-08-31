@@ -2,6 +2,8 @@ node_modules/
 .expo/
 dist/
 web-build/
+android/
+ios/
 *.log
 .DS_Store
 *.jks
@@ -12,3 +14,8 @@ web-build/
 *.orig.*
 .env
 .env.local
+
+# Agent asboblari — loyiha kodi emas
+.claude/
+.agents/
+skills-lock.json

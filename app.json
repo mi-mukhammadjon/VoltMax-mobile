@@ -2,19 +2,36 @@
   "expo": {
     "name": "VoltMax",
     "slug": "voltmax-app",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "orientation": "portrait",
     "scheme": "voltmax",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "splash": {
-      "backgroundColor": "#0B1220"
+      "backgroundColor": "#0E1512"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "uz.voltmax.app"
+      "bundleIdentifier": "uz.voltmax.app",
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": ["yandexnavi", "yandexmaps", "comgooglemaps", "maps"]
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyAq7bDO7tXrYsffbmdv4bNkrBNMZNIH-uY"
+      }
     },
     "android": {
-      "package": "uz.voltmax.app"
-    }
+      "package": "uz.voltmax.app",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAq7bDO7tXrYsffbmdv4bNkrBNMZNIH-uY"
+        }
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c35e640f-2412-4c76-b5bb-0678e48e236d"
+      }
+    },
+    "owner": "m.ukhammadjon"
   }
 }

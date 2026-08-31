@@ -1,32 +1,56 @@
-// VoltMax brend rang tokenlari
-// Dizayn: chuqur navy fon + elektr-ko'k va mint-yashil akcentlar
+// VoltMax brend rang tokenlari — TUNGI (dark) palitra
+// Dizayn tili: Prime EV — yashil asosiy rang, tekis kartalar, nozik chegaralar
 
-export const colors = {
+export interface ColorPalette {
+  bgPrimary: string;
+  bgSecondary: string;
+  bgElevated: string;
+
+  primary: string;
+  /** primary'ning och/shaffof varianti — aktiv tab, badge, yumshoq fonlar uchun */
+  primarySoft: string;
+  accent: string;
+  gradientPrimary: readonly [string, string];
+
+  statusAvailable: string;
+  statusBusy: string;
+  statusOffline: string;
+  statusError: string;
+
+  textPrimary: string;
+  textSecondary: string;
+  textMuted: string;
+
+  border: string;
+}
+
+export const colors: ColorPalette = {
   // Fon ranglari
-  bgPrimary: '#0B1220',      // chuqur navy - asosiy fon
-  bgSecondary: '#141C2E',    // karta/panel foni
-  bgElevated: '#1C2740',     // ko'tarilgan elementlar (modal, sheet)
+  bgPrimary: '#0E1512',      // chuqur yashil-qora - asosiy fon
+  bgSecondary: '#161E1A',    // karta/panel foni
+  bgElevated: '#1E2823',     // ko'tarilgan elementlar (modal, sheet, input)
 
   // Akcent ranglar
-  electricBlue: '#3B82F6',
-  mintGreen: '#34D9A8',
+  primary: '#2BB24C',
+  primarySoft: 'rgba(43,178,76,0.18)',
+  accent: '#43D06A',
 
   // Gradient juftliklari (LinearGradient uchun)
-  gradientPrimary: ['#3B82F6', '#34D9A8'] as const,
+  gradientPrimary: ['#2BB24C', '#43D06A'],
 
   // Status ranglari
-  statusAvailable: '#34D9A8',  // stansiya bo'sh
+  statusAvailable: '#2BB24C',  // stansiya bo'sh
   statusBusy: '#F5B942',       // stansiya band
   statusOffline: '#6B7280',    // stansiya ishlamayapti
-  statusError: '#EF4444',
+  statusError: '#E5484D',
 
   // Matn
-  textPrimary: '#F5F7FA',
-  textSecondary: '#9AA5B8',
-  textMuted: '#5B6478',
+  textPrimary: '#F2F5F3',
+  textSecondary: '#9BA8A1',
+  textMuted: '#6B7873',
 
   // Border/divider
-  border: '#252F45',
-} as const;
+  border: '#26312B',
+};
 
-export type ColorToken = keyof typeof colors;
+export type ColorToken = keyof ColorPalette;

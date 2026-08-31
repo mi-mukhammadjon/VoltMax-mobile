@@ -1,12 +1,13 @@
 // VoltMax tipografiya tokenlari
-// Shrift: Inter / Manrope oilasi (keyinchalik expo-font orqali ulanadi)
+// Shrift: Manrope — @expo-google-fonts/manrope orqali App.tsx'da useFonts bilan ulangan
+// (Proxima Nova'ning bepul, litsenziyasiz muqobili sifatida tanlandi)
 
 export const typography = {
   fontFamily: {
-    regular: 'Inter-Regular',
-    medium: 'Inter-Medium',
-    semibold: 'Inter-SemiBold',
-    bold: 'Inter-Bold',
+    regular: 'Manrope-Regular',
+    medium: 'Manrope-Medium',
+    semibold: 'Manrope-SemiBold',
+    bold: 'Manrope-Bold',
   },
   size: {
     xs: 12,

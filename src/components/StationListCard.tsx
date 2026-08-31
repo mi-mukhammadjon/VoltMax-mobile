@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Star, MapPin, Clock, Zap } from 'lucide-react-native';
+import { Star } from 'lucide-react-native';
 import { Station } from '@/types';
-import { colors, typography, spacing, radius } from '@/theme';
+import { AmenityIcon } from '@/components/AmenityIcon';
+import { typography, spacing, radius, shadow, useThemeColors, ColorPalette } from '@/theme';
+import { formatSom } from '@/utils/money';
+
+// Prime EV stansiya kartasi: nom + masofa (yashil), manzil, reyting va
+// qulaylik ikonkalari, ajratuvchi chiziq, pastda holat + narx.
 
 interface Props {
   station: Station;
@@ -11,71 +15,73 @@ interface Props {
 }
 
 export default function StationListCard({ station, onPress }: Props) {
-  const hasDiscount = !!station.originalPricePerKwh && station.originalPricePerKwh > station.pricePerKwh;
+  const colors = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const hasDiscount =
+    !!station.originalPricePerKwh && station.originalPricePerKwh > station.pricePerKwh;
+  const connectorCount = station.connectors?.length ?? 0;
+  const available = station.connectors?.some((c) => c.status === 'available') ?? station.status === 'available';
 
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.85} onPress={() => onPress(station)}>
-      <View style={styles.headerRow}>
-        <LinearGradient
-          colors={colors.gradientPrimary}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.powerBadge}
-        >
-          <Text style={styles.powerBadgeValue}>{station.powerKw}</Text>
-          <Text style={styles.powerBadgeUnit}>kVt</Text>
-        </LinearGradient>
+      <View style={styles.titleRow}>
+        <Text style={styles.name} numberOfLines={1}>
+          {station.name}
+        </Text>
+        {station.distanceKm != null && (
+          <Text style={styles.distance}>{station.distanceKm} km</Text>
+        )}
+      </View>
 
-        <View style={{ flex: 1 }}>
-          <Text style={styles.name} numberOfLines={2}>{station.name}</Text>
-          <Text style={styles.address} numberOfLines={1}>{station.address}</Text>
-          {!!station.rating && (
-            <View style={styles.starsRow}>
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  size={13}
-                  color={colors.mintGreen}
-                  fill={i < Math.round(station.rating!) ? colors.mintGreen : 'transparent'}
-                />
-              ))}
-            </View>
-          )}
+      <Text style={styles.address} numberOfLines={1}>
+        {station.address}
+      </Text>
+
+      <View style={styles.metaRow}>
+        {!!station.rating && (
+          <View style={styles.ratingWrap}>
+            <Star size={13} color="#F5B942" fill="#F5B942" />
+            <Text style={styles.ratingText}>{station.rating}</Text>
+          </View>
+        )}
+        <View style={styles.amenityRow}>
+          {station.amenities?.slice(0, 4).map((amenity, idx) => (
+            <AmenityIcon key={idx} icon={amenity.icon} size={15} color={colors.textMuted} />
+          ))}
         </View>
       </View>
 
-      <View style={styles.infoRow}>
-        <View style={styles.infoItem}>
-          <View style={styles.infoTop}>
-            <MapPin size={14} color={colors.textSecondary} />
-            <Text style={styles.infoValue}>{station.distanceKm ?? '-'} km</Text>
-          </View>
-          <Text style={styles.infoLabel}>Masofa</Text>
-        </View>
+      <View style={styles.divider} />
 
-        <View style={styles.infoDivider} />
-
-        <View style={styles.infoItem}>
-          <View style={styles.infoTop}>
-            <Clock size={14} color={colors.textSecondary} />
-            <Text style={styles.infoValue}>{station.etaMinutes ?? '-'} daq</Text>
-          </View>
-          <Text style={styles.infoLabel}>Vaqt</Text>
-        </View>
-
-        <View style={styles.infoDivider} />
-
-        <View style={[styles.infoItem, { alignItems: 'flex-end' }]}>
-          <View style={styles.infoTop}>
-            <Zap size={14} color={colors.mintGreen} fill={colors.mintGreen} />
-            <Text style={[styles.infoValue, { color: colors.mintGreen }]}>
-              {station.pricePerKwh.toLocaleString('uz-UZ')} so'm
+      <View style={styles.footerRow}>
+        <View style={styles.statusWrap}>
+          <View
+            style={[
+              styles.statusDot,
+              { backgroundColor: available ? colors.statusAvailable : colors.statusError },
+            ]}
+          />
+          <Text
+            style={[
+              styles.statusText,
+              { color: available ? colors.statusAvailable : colors.statusError },
+            ]}
+          >
+            {available ? "Bo'sh" : 'Band'}
+          </Text>
+          {connectorCount > 0 && (
+            <Text style={styles.plugCount}>
+              {'•'} {connectorCount} ta razyom
             </Text>
-          </View>
+          )}
+        </View>
+
+        <View style={styles.priceWrap}>
+          <Text style={styles.price}>{formatSom(station.pricePerKwh)} so'm</Text>
           {hasDiscount && (
             <Text style={styles.strikePrice}>
-              {station.originalPricePerKwh!.toLocaleString('uz-UZ')} so'm{' '}
-              <Text style={styles.infoLabel}>1 kVt uchun</Text>
+              {formatSom(station.originalPricePerKwh!)}
             </Text>
           )}
         </View>
@@ -84,86 +90,105 @@ export default function StationListCard({ station, onPress }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.bgSecondary,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginBottom: spacing.md,
-  },
-  powerBadge: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  powerBadgeValue: {
-    color: colors.bgPrimary,
-    fontSize: typography.size.base,
-    fontFamily: typography.fontFamily.bold,
-    lineHeight: 18,
-  },
-  powerBadgeUnit: {
-    color: colors.bgPrimary,
-    fontSize: 10,
-    fontFamily: typography.fontFamily.medium,
-  },
-  name: {
-    color: colors.textPrimary,
-    fontSize: typography.size.base,
-    fontFamily: typography.fontFamily.semibold,
-  },
-  address: {
-    color: colors.textMuted,
-    fontSize: typography.size.xs,
-    marginTop: 2,
-  },
-  starsRow: {
-    flexDirection: 'row',
-    gap: 2,
-    marginTop: spacing.xs,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    backgroundColor: colors.bgElevated,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-  },
-  infoItem: {
-    flex: 1,
-  },
-  infoDivider: {
-    width: 1,
-    backgroundColor: colors.border,
-    marginHorizontal: spacing.sm,
-  },
-  infoTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  infoValue: {
-    color: colors.textPrimary,
-    fontSize: typography.size.sm,
-    fontFamily: typography.fontFamily.semibold,
-  },
-  infoLabel: {
-    color: colors.textMuted,
-    fontSize: 10,
-    marginTop: 2,
-  },
-  strikePrice: {
-    color: colors.textMuted,
-    fontSize: 10,
-    textDecorationLine: 'line-through',
-    marginTop: 2,
-  },
-});
+const createStyles = (colors: ColorPalette) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: colors.bgSecondary,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      marginBottom: spacing.md,
+      ...shadow.card,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    name: {
+      flex: 1,
+      color: colors.textPrimary,
+      fontSize: typography.size.sm,
+      fontFamily: typography.fontFamily.bold,
+    },
+    distance: {
+      color: colors.primary,
+      fontSize: typography.size.xs,
+      fontFamily: typography.fontFamily.semibold,
+    },
+    address: {
+      color: colors.textMuted,
+      fontSize: typography.size.xs,
+      marginTop: 3,
+    },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: spacing.sm,
+    },
+    ratingWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    ratingText: {
+      color: colors.textPrimary,
+      fontSize: typography.size.xs,
+      fontFamily: typography.fontFamily.semibold,
+    },
+    amenityRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginLeft: 'auto',
+    },
+    divider: {
+      height: 1,
+      backgroundColor: colors.border,
+      marginTop: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    footerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.sm,
+    },
+    statusWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      flexShrink: 1,
+    },
+    statusDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+    },
+    statusText: {
+      fontSize: typography.size.xs,
+      fontFamily: typography.fontFamily.semibold,
+    },
+    plugCount: {
+      color: colors.textMuted,
+      fontSize: typography.size.xs,
+      flexShrink: 1,
+    },
+    priceWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
+    price: {
+      color: colors.textPrimary,
+      fontSize: typography.size.sm,
+      fontFamily: typography.fontFamily.bold,
+    },
+    strikePrice: {
+      color: colors.textMuted,
+      fontSize: typography.size.xs,
+      textDecorationLine: 'line-through',
+    },
+  });
