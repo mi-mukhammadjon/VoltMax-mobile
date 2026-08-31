@@ -11,6 +11,9 @@ interface AuthState {
   name: string | null;
   hasHydrated: boolean;
   setTokens: (accessToken: string, refreshToken: string, phone: string) => void;
+  // Token yangilanganda faqat `access` almashadi — telefon va ism
+  // saqlanib qolishi kerak
+  setAccessToken: (accessToken: string) => void;
   setName: (name: string | null) => void;
   logout: () => void;
   setHasHydrated: (value: boolean) => void;
@@ -27,6 +30,7 @@ export const useAuthStore = create<AuthState>()(
       name: null,
       hasHydrated: false,
       setTokens: (accessToken, refreshToken, phone) => set({ accessToken, refreshToken, phone }),
+      setAccessToken: (accessToken) => set({ accessToken }),
       // Bo'sh matn ham "ism yo'q" degani — UI ni bo'sh sarlavha bilan qoldirmaslik uchun
       setName: (name) => set({ name: name?.trim() ? name.trim() : null }),
       logout: () => {

@@ -1,12 +1,10 @@
 import axios from 'axios';
-import { useAuthStore } from '@/store/useAuthStore';
 
-// Lokal Django backend (voltmax-backend). Fizik qurilma bilan kompyuter bir xil
-// Wi-Fi tarmog'ida bo'lishi kerak. Kompyuter LAN IP o'zgarsa shu yerni yangilang
-// (`ipconfig` — IPv4-manzil). Android emulyator uchun: http://10.0.2.2:8000/api
-// TODO: production'da .env orqali almashtiriladi
+import { useAuthStore } from '@/store/useAuthStore';
+import { API_BASE_URL, TOKEN_REFRESH_URL } from './config';
+
 export const apiClient = axios.create({
-  baseURL: 'http://192.168.1.8:8000/api',
+  baseURL: API_BASE_URL,
   timeout: 10000,
 });
 
@@ -17,6 +15,70 @@ apiClient.interceptors.request.use((config) => {
   }
   return config;
 });
+
+/**
+ * Token yangilash.
+ *
+ * `access` tokeni 7 kunda tugaydi. Ilgari bu holat umuman ishlov
+ * ko'rmasdi: server 401 qaytarardi, ilova esa "hech narsa yuklanmayapti"
+ * bo'lib qolardi va foydalanuvchi sababini bilmasdi.
+ *
+ * Bir vaqtda bir nechta so'rov 401 olishi mumkin (ekranda bir necha
+ * so'rov ketadi). Ular bitta yangilashni KUTADI, aks holda har biri
+ * alohida yangilash yuborardi va serverdagi eski refresh tokenlar
+ * bekor bo'lib, foydalanuvchi tizimdan chiqib ketardi.
+ */
+let refreshing: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  const { refreshToken, setAccessToken, logout } = useAuthStore.getState();
+  if (!refreshToken) return null;
+
+  try {
+    // `apiClient` emas: interceptor cheksiz halqaga tushib qolardi
+    const response = await axios.post(
+      TOKEN_REFRESH_URL,
+      { refresh: refreshToken },
+      { timeout: 15000 }
+    );
+    const access = response.data?.access ?? null;
+    if (access) setAccessToken(access);
+    return access;
+  } catch {
+    // Refresh ham eskirgan — qaytadan kirish kerak
+    logout();
+    return null;
+  }
+}
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const original = error.config;
+    const status = error.response?.status;
+
+    // Faqat 401 va faqat BIR MARTA: ikkinchi 401 haqiqiy ruxsat xatosi
+    if (status !== 401 || !original || original._retried) {
+      return Promise.reject(error);
+    }
+    // Kirish so'rovlarining o'zi qayta urinilmaydi
+    if (typeof original.url === 'string' && original.url.includes('/auth/')) {
+      return Promise.reject(error);
+    }
+
+    original._retried = true;
+    refreshing = refreshing ?? refreshAccessToken().finally(() => {
+      refreshing = null;
+    });
+
+    const access = await refreshing;
+    if (!access) return Promise.reject(error);
+
+    original.headers = original.headers ?? {};
+    original.headers.Authorization = `Bearer ${access}`;
+    return apiClient(original);
+  }
+);
 
 export const AuthAPI = {
   // Telegram Gateway ikki bosqichli (checkSendAbility + sendVerificationMessage)

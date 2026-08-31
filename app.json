@@ -13,7 +13,12 @@
       "supportsTablet": false,
       "bundleIdentifier": "uz.voltmax.app",
       "infoPlist": {
-        "LSApplicationQueriesSchemes": ["yandexnavi", "yandexmaps", "comgooglemaps", "maps"]
+        "LSApplicationQueriesSchemes": [
+          "yandexnavi",
+          "yandexmaps",
+          "comgooglemaps",
+          "maps"
+        ]
       },
       "config": {
         "googleMapsApiKey": "AIzaSyAq7bDO7tXrYsffbmdv4bNkrBNMZNIH-uY"
@@ -30,7 +35,8 @@
     "extra": {
       "eas": {
         "projectId": "c35e640f-2412-4c76-b5bb-0678e48e236d"
-      }
+      },
+      "apiUrl": ""
     },
     "owner": "m.ukhammadjon"
   }
