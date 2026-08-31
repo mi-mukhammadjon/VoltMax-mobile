@@ -31,7 +31,7 @@ apiClient.interceptors.request.use((config) => {
 let refreshing: Promise<string | null> | null = null;
 
 async function refreshAccessToken(): Promise<string | null> {
-  const { refreshToken, setAccessToken, logout } = useAuthStore.getState();
+  const { refreshToken, setSession, logout } = useAuthStore.getState();
   if (!refreshToken) return null;
 
   try {
@@ -42,7 +42,11 @@ async function refreshAccessToken(): Promise<string | null> {
       { timeout: 15000 }
     );
     const access = response.data?.access ?? null;
-    if (access) setAccessToken(access);
+    // Server har yangilashda YANGI refresh beradi va eskisini bekor
+    // qiladi (rotatsiya). Yangisini saqlamasak, keyingi yangilash
+    // ishlamay foydalanuvchi bir soatdan keyin chiqib ketardi.
+    const rotated = response.data?.refresh ?? refreshToken;
+    if (access) setSession(access, rotated);
     return access;
   } catch {
     // Refresh ham eskirgan — qaytadan kirish kerak

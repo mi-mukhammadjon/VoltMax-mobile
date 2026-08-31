@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { unregisterPush } from '@/services/push';
+import { revokeSession } from '@/services/session';
 
 interface AuthState {
   accessToken: string | null;
@@ -14,6 +15,8 @@ interface AuthState {
   // Token yangilanganda faqat `access` almashadi — telefon va ism
   // saqlanib qolishi kerak
   setAccessToken: (accessToken: string) => void;
+  /** Token yangilangach ikkalasini ham saqlaydi (server rotatsiya qiladi) */
+  setSession: (accessToken: string, refreshToken: string) => void;
   setName: (name: string | null) => void;
   logout: () => void;
   setHasHydrated: (value: boolean) => void;
@@ -23,7 +26,7 @@ interface AuthState {
 // ilova qayta ochilganda ham login/OTP qayta so'ralmaydi.
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       accessToken: null,
       refreshToken: null,
       phone: null,
@@ -31,12 +34,25 @@ export const useAuthStore = create<AuthState>()(
       hasHydrated: false,
       setTokens: (accessToken, refreshToken, phone) => set({ accessToken, refreshToken, phone }),
       setAccessToken: (accessToken) => set({ accessToken }),
+      // Server har yangilashda YANGI refresh beradi va eskisini bekor
+      // qiladi. Yangisi saqlanmasa foydalanuvchi bir soatdan keyin
+      // tizimdan chiqib ketardi.
+      setSession: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
       // Bo'sh matn ham "ism yo'q" degani — UI ni bo'sh sarlavha bilan qoldirmaslik uchun
       setName: (name) => set({ name: name?.trim() ? name.trim() : null }),
       logout: () => {
         // Push manzili ham o'chiriladi: telefon boshqa odamga o'tsa, unga
         // avvalgi egasining xabarlari kelaverardi
         unregisterPush();
+
+        // Tokenni SERVERDA ham bekor qilamiz. Faqat telefondagi nusxani
+        // o'chirish yetarli emas edi: `refresh` tokeni yana bir oy amal
+        // qilaverardi va u oshkor bo'lsa to'xtatishning yo'li yo'q edi.
+        //
+        // Javob kutilmaydi: chiqish tarmoqqa bog'liq bo'lmasligi kerak —
+        // internet yo'q joyda ham foydalanuvchi chiqa olishi shart.
+        revokeSession(get().refreshToken);
+
         set({ accessToken: null, refreshToken: null, phone: null, name: null });
       },
       setHasHydrated: (value) => set({ hasHydrated: value }),
