@@ -152,6 +152,13 @@ nusxalanmaydi.
 `access` tokeni tugasa ilova uni o'zi yangilaydi. Bir vaqtda bir necha
 so'rov 401 olsa, ular bitta yangilashni kutadi.
 
+## Keyingi ishlar
+
+Orqaga surilgan hamma narsa backend repozitoriysidagi
+**`KEYINGI-ISHLAR.md`** da — ikkala loyihani ham qamraydi. Ilovaga
+tegishlilari: EAS build (push, avatar va SecureStore faqat haqiqiy
+qurilmada tekshiriladi) va Google Maps kalitini cheklash.
+
 ## Tekshirish
 
 ```bash
