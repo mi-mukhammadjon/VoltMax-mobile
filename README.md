@@ -73,6 +73,35 @@ bo'lishi kerak. IP o'zgarsa `eas.json` dagi `development` profilini yoki
 `.env` ni yangilang (`ipconfig` — IPv4 manzil). Android emulyatori uchun:
 `http://10.0.2.2:8000/api`.
 
+### Lokal server bilan build (telefon + hotspot)
+
+Android 9+ `http://` so'rovlarni bloklaydi. Ruxsat ro'yxatini
+`plugins/withDevCleartext.js` **`EXPO_PUBLIC_API_URL` dan** yozadi —
+qo'lda yozilgan ro'yxat `android/` papkasi bilan birga
+`expo prebuild` da yo'qolardi va bir marta shunday bo'lgan: APK
+yig'ildi, o'rnatildi, ishga tushdi va telefonda «aloqa yo'q» deb
+turaverdi.
+
+Manzilni faqat BIR joyda ko'rsatasiz:
+
+```bash
+cd android
+EXPO_PUBLIC_API_URL="http://<kompyuter-ip>:8000/api" ./gradlew assembleRelease
+adb install -r app/build/outputs/apk/release/app-release.apk
+```
+
+Server tomonda hech narsa sozlash kerak emas: `DEBUG` rejimida
+`ALLOWED_HOSTS` o'zi to'ldiriladi.
+
+Telefon hotspot bo'lsa, kompyuter manzilini shunday topasiz:
+
+```bash
+# Windows
+ipconfig                 # hotspot interfeysidagi IPv4
+```
+
+`ping` ishlamasligi normal — Windows ICMP'ni to'sadi, TCP esa ochiq.
+
 ## Nima bor
 
 Xarita va stansiyalar ro'yxati, stansiya detali va sharhlar, zaryadlash
