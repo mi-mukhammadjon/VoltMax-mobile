@@ -20,6 +20,7 @@ import { WalletAPI } from '@/services/api';
 import { Transaction, WalletBalance } from '@/types';
 import ScreenHeader from '@/components/ScreenHeader';
 import { showAlert } from '@/services/alert';
+import { useAppStore } from '@/store/useAppStore';
 import { describeError } from '@/services/errors';
 import { formatSom, groupSomInput, parseSomInput, somInputToNumber } from '@/utils/money';
 
@@ -80,7 +81,12 @@ export default function WalletScreen() {
   const [topUpLoading, setTopUpLoading] = useState(false);
   const [providers, setProviders] = useState<{ code: string; name: string }[]>([]);
   // To'lovdan qaytgach shu buyurtma holati so'raladi
-  const [pendingOrder, setPendingOrder] = useState<number | null>(null);
+  // Do'kondan: foydalanuvchi to'lash uchun brauzerga o'tganda tizim
+  // ilovani xotiradan chiqarib yuborishi mumkin. Ekran holatida
+  // saqlansa buyurtma raqami yo'qolardi va qaytgan odam tasdiqni
+  // umuman ko'rmasdi.
+  const pendingOrder = useAppStore((s) => s.pendingOrderId);
+  const setPendingOrder = useAppStore((s) => s.setPendingOrder);
 
   const loadWallet = useCallback(() => {
     Promise.all([WalletAPI.getBalance(), WalletAPI.getTransactions()])

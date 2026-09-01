@@ -8,6 +8,7 @@
  * Token qurilmaga bog'liq va o'zgarishi mumkin (ilova qayta o'rnatilganda),
  * shuning uchun u har kirishda qayta yuboriladi.
  */
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
@@ -23,7 +24,42 @@ Notifications.setNotificationHandler({
   }),
 });
 
+/* Ro'yxatdan o'tgan token TELEFONDA saqlanadi, faqat xotirada emas.
+ *
+ * Ilgari u oddiy o'zgaruvchi edi va ilova yopilganda yo'qolardi. Ya'ni:
+ * odam dushanba kuni kirdi (token yozildi), seshanba kuni ilovani ochib
+ * «Chiqish» bosdi — o'zgaruvchi esa bo'sh edi va serverdan HECH NARSA
+ * o'chirilmadi. Telefon boshqa odamga o'tsa, unga avvalgi egasining
+ * xabarlari kelaverardi — ya'ni bu funksiya aynan o'zi oldini olishi
+ * kerak bo'lgan narsani qilmasdi.
+ */
+const TOKEN_KEY = 'voltmax-push-token';
+
 let registeredToken: string | null = null;
+let loadedFromStorage = false;
+
+async function rememberedToken(): Promise<string | null> {
+  if (loadedFromStorage) return registeredToken;
+  try {
+    registeredToken = await AsyncStorage.getItem(TOKEN_KEY);
+  } catch {
+    registeredToken = null;
+  }
+  loadedFromStorage = true;
+  return registeredToken;
+}
+
+async function remember(token: string | null): Promise<void> {
+  registeredToken = token;
+  loadedFromStorage = true;
+  try {
+    if (token) await AsyncStorage.setItem(TOKEN_KEY, token);
+    else await AsyncStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // Saqlash ishlamasa ham oqim to'xtamaydi: eng yomoni token
+    // keyingi safar qaytadan yuboriladi
+  }
+}
 
 /**
  * Ruxsat so'raydi, tokenni oladi va serverga yuboradi.
@@ -53,10 +89,11 @@ export async function registerForPush(): Promise<string | null> {
   }
 
   try {
+    const known = await rememberedToken();
     const { data: token } = await Notifications.getExpoPushTokenAsync();
-    if (token && token !== registeredToken) {
+    if (token && token !== known) {
       await NotificationsAPI.registerDevice(token, Platform.OS);
-      registeredToken = token;
+      await remember(token);
     }
     return token ?? null;
   } catch {
@@ -69,11 +106,17 @@ export async function registerForPush(): Promise<string | null> {
 /** Chiqishda tokenni serverdan o'chiradi: telefon boshqa odamga o'tsa,
  *  unga avvalgi egasining xabarlari kelmasin. */
 export async function unregisterPush(): Promise<void> {
-  if (!registeredToken) return;
+  const token = await rememberedToken();
+  if (!token) return;
+
   try {
-    await NotificationsAPI.unregisterDevice(registeredToken);
+    await NotificationsAPI.unregisterDevice(token);
   } catch {
-    // Chiqishga xalaqit qilmaydi
+    // Chiqishga xalaqit qilmaydi: internet yo'q joyda ham odam
+    // tizimdan chiqa olishi kerak
   }
-  registeredToken = null;
+  // Telefondagi yozuv HAR HOLDA tozalanadi. Aks holda keyingi
+  // foydalanuvchi kirganda eski token "allaqachon yozilgan" deb
+  // hisoblanib, uning qurilmasi umuman ro'yxatga tushmasdi.
+  await remember(null);
 }

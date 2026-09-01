@@ -142,8 +142,9 @@ npm test              # mantiq sinovlari
 
 Sinovlar ilovaning MANTIG'INI tekshiradi: token yangilash va rotatsiya,
 sessiyani boshlash oqimi (202 → kutish → sessiya), tarmoq uzilishiga
-chidamlilik, qayta ulanish oralig'i, chiqish. Aynan shu joylarda xato
-qimmatga tushadi.
+chidamlilik, qayta ulanish oralig'i, push manzili, saqlanadigan holat,
+server manzilini aniqlash va chiqish. Aynan shu joylarda xato qimmatga
+tushadi.
 
 Ekranlar sinalmaydi — ular React va butun RN muhitini talab qiladi,
 xatolar esa deyarli har doim mantiqda bo'ladi.

@@ -14,10 +14,13 @@ interface AppState {
   recentSearches: string[];
   /** Stansiyalar oxirgi marta qachon serverdan olingani (ms) */
   stationsSyncedAt: number | null;
+  /** Kutilayotgan to'lov buyurtmasi — ilova to'lov sahifasiga o'tganda */
+  pendingOrderId: number | null;
 
   setStations: (stations: Station[]) => void;
   setActiveSession: (session: ChargingSession | null) => void;
   setWalletBalance: (balance: WalletBalance) => void;
+  setPendingOrder: (orderId: number | null) => void;
   toggleFavoriteStation: (stationId: string) => void;
   addRecentSearch: (query: string) => void;
   clearRecentSearches: () => void;
@@ -32,10 +35,12 @@ export const useAppStore = create<AppState>()(
   favoriteStationIds: [],
   recentSearches: [],
   stationsSyncedAt: null,
+  pendingOrderId: null,
 
   setStations: (stations) => set({ stations, stationsSyncedAt: Date.now() }),
   setActiveSession: (session) => set({ activeSession: session }),
   setWalletBalance: (balance) => set({ walletBalance: balance }),
+  setPendingOrder: (pendingOrderId) => set({ pendingOrderId }),
   toggleFavoriteStation: (stationId) =>
     set((state) => ({
       favoriteStationIds: state.favoriteStationIds.includes(stationId)
@@ -74,6 +79,13 @@ export const useAppStore = create<AppState>()(
         stations: state.stations,
         walletBalance: state.walletBalance,
         stationsSyncedAt: state.stationsSyncedAt,
+        /* To'lov buyurtmasi HAM saqlanadi: foydalanuvchi to'lash uchun
+           brauzerga o'tadi va tizim shu paytda ilovani xotiradan
+           chiqarib yuborishi mumkin (Android'da odatiy hol). Ilgari
+           buyurtma raqami faqat ekran holatida edi va yo'qolardi —
+           odam qaytganda tasdiqni umuman ko'rmasdi va to'lov
+           o'tmagan deb o'ylardi. */
+        pendingOrderId: state.pendingOrderId,
       }),
     }
   )

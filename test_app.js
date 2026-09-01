@@ -46,10 +46,12 @@ const rnStubs = {
   'expo-constants': { __esModule: true, default: { expoConfig: { extra: {} } } },
   '@react-native-async-storage/async-storage': {
     __esModule: true,
+    // Haqiqiy saqlash kabi ishlaydi: ilova qayta ochilgandagi
+    // xatti-harakatni faqat shunday tekshirib bo'ladi
     default: {
-      getItem: async () => null,
-      setItem: async () => {},
-      removeItem: async () => {},
+      getItem: async (key) => (key in storage ? storage[key] : null),
+      setItem: async (key, value) => { storage[key] = value; },
+      removeItem: async (key) => { delete storage[key]; },
     },
   },
   'expo-notifications': {
@@ -79,6 +81,9 @@ const rnStubs = {
 // NetInfo obunachilari — sinov ular orqali "aloqa yo'qoldi/tiklandi"
 // deb xabar beradi
 const netInfoListeners = new Set();
+
+// Telefondagi saqlash — sinovlar orasida tozalanadi
+const storage = {};
 
 function setNetwork(connected, reachable = connected) {
   netInfoListeners.forEach((fn) => fn({
@@ -183,6 +188,7 @@ function reset() {
     .forEach((key) => delete require.cache[key]);
   axiosStub.state.calls.length = 0;
   axiosStub.state.handle = () => ({ status: 200, data: {} });
+  Object.keys(storage).forEach((key) => delete storage[key]);
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -528,7 +534,108 @@ async function testErrorMessages() {
         describeError({ response: { status: 418 } }, 'Boshqa xato') === 'Boshqa xato');
 }
 
-/* ══ 8. Chiqish ══════════════════════════════════════════════════ */
+/* ══ 8. Push manzili ═════════════════════════════════════════════ */
+async function testPush() {
+  console.log('\n-- Push manzili --');
+
+  reset();
+  const push = load('services/push');
+
+  const sent = [];
+  axiosStub.state.handle = (config) => {
+    if (String(config.url).includes('/notifications/device/')) {
+      sent.push({ method: config.method, data: config.data });
+    }
+    return { status: 200, data: {} };
+  };
+
+  const token = await push.registerForPush();
+  check('token olindi va yuborildi',
+        token === 'ExponentPushToken[test]' && sent.length === 1, sent.length);
+
+  // Ikkinchi chaqiruvda takroriy so'rov ketmasligi kerak
+  await push.registerForPush();
+  check("o'sha token qayta yuborilmadi", sent.length === 1, sent.length);
+
+  // ENG MUHIMI: ilova QAYTA OCHILGANDA ham chiqish ishlashi kerak.
+  // Ilgari token faqat xotirada edi: odam ertasi kuni ilovani ochib
+  // «Chiqish» bossa, serverdan hech narsa o'chirilmasdi va telefon
+  // boshqa odamga o'tsa unga avvalgi egasining xabarlari kelaverardi.
+  const restarted = load('services/push');       // modul qaytadan yuklandi
+  sent.length = 0;
+
+  await restarted.unregisterPush();
+  check("qayta ochilgandan keyin ham manzil o'chirildi",
+        sent.length === 1 && sent[0].method === 'delete', sent);
+
+  // O'chirilgach yozuv qolmasligi kerak: aks holda keyingi
+  // foydalanuvchining qurilmasi "allaqachon yozilgan" deb hisoblanardi
+  sent.length = 0;
+  const next = load('services/push');
+  await next.registerForPush();
+  check('keyingi foydalanuvchi qaytadan yozildi', sent.length === 1, sent.length);
+}
+
+/* ══ 9. Saqlanadigan holat ═══════════════════════════════════════ */
+async function testPersistence() {
+  console.log('\n-- Saqlanadigan holat --');
+
+  reset();
+  const { useAppStore } = load('store/useAppStore');
+
+  useAppStore.getState().toggleFavoriteStation('7');
+  useAppStore.getState().setStations([{ id: '1', name: 'Chilonzor' }]);
+  useAppStore.getState().setPendingOrder(42);
+  useAppStore.getState().setActiveSession({ id: '99', status: 'charging' });
+
+  await sleep(20);      // saqlash asinxron
+
+  const saved = JSON.parse(storage['voltmax-app'] || '{}').state || {};
+  check('sevimlilar saqlandi',
+        (saved.favoriteStationIds || []).includes('7'), saved.favoriteStationIds);
+  check("stansiyalar saqlandi (aloqasiz ekran bo'sh qolmasin)",
+        (saved.stations || []).length === 1, (saved.stations || []).length);
+  check("to'lov buyurtmasi saqlandi", saved.pendingOrderId === 42,
+        saved.pendingOrderId);
+
+  // Ketayotgan sessiya SAQLANMASLIGI kerak: u tez o'zgaradi va
+  // eskisini ko'rsatish chalg'itadi — odam tugagan sessiyani
+  // ketayotgan deb o'ylardi
+  check('ketayotgan sessiya saqlanmadi',
+        saved.activeSession === undefined, saved.activeSession);
+
+  check('yangilanish vaqti yozildi',
+        typeof saved.stationsSyncedAt === 'number', saved.stationsSyncedAt);
+}
+
+/* ══ 10. Server manzili ══════════════════════════════════════════ */
+async function testConfig() {
+  console.log('\n-- Server manzili --');
+
+  reset();
+  const config = load('services/config');
+  check('ishlab chiqishda zaxira manzil ishlatildi',
+        config.API_BASE_URL.includes('/api'), config.API_BASE_URL);
+  check('token yangilash manzili tuzildi',
+        config.TOKEN_REFRESH_URL.endsWith('/auth/token/refresh/'),
+        config.TOKEN_REFRESH_URL);
+
+  // Build qilingan ilovada manzil topilmasa OCHIQ XATO berilishi kerak.
+  // Ilgari u jimgina ishlab chiquvchining uy Wi-Fi manziliga urinardi
+  // va buni faqat telefonda ochib ko'rgandan keyin bilib bo'lardi.
+  reset();
+  global.__DEV__ = false;
+  let threw = false;
+  try {
+    load('services/config');
+  } catch (error) {
+    threw = String(error.message || error).toLowerCase().includes('manzil');
+  }
+  global.__DEV__ = true;
+  check("build'da manzilsiz ochiq xato berdi", threw);
+}
+
+/* ══ 11. Chiqish ═════════════════════════════════════════════════ */
 async function testLogout() {
   console.log('\n-- Chiqish --');
 
@@ -567,6 +674,9 @@ async function testLogout() {
   await testReconnect();
   await testNetwork();
   await testErrorMessages();
+  await testPush();
+  await testPersistence();
+  await testConfig();
   await testLogout();
 
   console.log('\n' + (failures ? `*** ${failures} TA XATO ***` : 'HAMMASI OK'));
