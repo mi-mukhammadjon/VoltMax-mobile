@@ -791,6 +791,33 @@ async function testCards() {
         !kept.some((key) => key.toLowerCase().includes('card')), kept.join(', '));
 }
 
+/* ══ 14. Nosozlik haqida xabar ══ */
+async function testReport() {
+  console.log('\n-- Nosozlik xabari --');
+
+  reset();
+  load('store/useAuthStore').useAuthStore.setState({ accessToken: 'token' });
+  const { StationsAPI } = load('services/api');
+
+  let known = false;
+  axiosStub.state.handle = () => ({
+    status: 201, data: { accepted: true, alreadyKnown: known },
+  });
+
+  const res = await StationsAPI.report('12', 'ulagich sinmagan');
+  const call = axiosStub.state.calls.find((c) => String(c.url).includes('/report/'));
+
+  // Ilgari bu tugma HECH NARSA yubormasdi, ekranda esa «xabaringiz
+  // qabul qilindi» deb yozilardi
+  check('xabar serverga ketdi', Boolean(call), call && call.url);
+  check('izoh ham yuborildi', call && call.data && call.data.note === 'ulagich sinmagan');
+  check('javobda holat bor', res.data.alreadyKnown === false);
+
+  known = true;
+  const second = await StationsAPI.report('12');
+  check('ma'+String.fromCharCode(8217)+'lum muammo ajratildi', second.data.alreadyKnown === true);
+}
+
 /* ══ Ishga tushirish ═════════════════════════════════════════════ */
 (async function run() {
   await testTokenRefresh();
@@ -806,6 +833,7 @@ async function testCards() {
   await testSecureStorage();
   await testLogout();
   await testCards();
+  await testReport();
 
   console.log('\n' + (failures ? `*** ${failures} TA XATO ***` : 'HAMMASI OK'));
   process.exit(failures ? 1 : 0);

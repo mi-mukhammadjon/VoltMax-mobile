@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, List, Zap, Heart, User } from 'lucide-react-native';
 import { RootStackParamList, MainTabParamList } from './types';
 import { useThemeColors, ColorPalette, radius, typography } from '@/theme';
@@ -55,6 +56,10 @@ const tabLabels: Record<keyof MainTabParamList, string> = {
 function MainTabs() {
   const colors = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  // Jest bilan boshqariladigan telefonlarda pastda tizim chizig'i turadi.
+  // Qat'iy balandlik unga tegib ketardi: yorliqlar chiziq ostida qolib,
+  // tabga tegish o'rniga telefon bosh ekranga chiqib ketardi.
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
@@ -68,8 +73,8 @@ function MainTabs() {
           backgroundColor: colors.bgSecondary,
           borderTopColor: colors.border,
           borderTopWidth: 1,
-          height: 72,
-          paddingBottom: 8,
+          height: 72 + insets.bottom,
+          paddingBottom: 8 + insets.bottom,
           paddingTop: 8,
         },
         tabBarIcon: ({ focused }) => {

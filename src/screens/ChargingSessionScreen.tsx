@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackScreenProps, NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ArrowLeft, DollarSign, Zap, Plug, Hourglass } from 'lucide-react-native';
+import { ArrowLeft, DollarSign, Zap, Plug, Hourglass, Car } from 'lucide-react-native';
 import { RootStackParamList } from '@/navigation/types';
 import { typography, spacing, radius, shadow, useThemeColors, ColorPalette } from '@/theme';
 import { ChargingSession } from '@/types';
@@ -216,13 +216,16 @@ export default function ChargingSessionScreen({ route }: Props) {
           </View>
         </View>
 
+        {/* Ilgari bu yerda Unsplash'dan yuklanadigan surat turardi.
+            Zaryadlash ekrani aynan aloqa yomon joyda ochiladi —
+            yerto'la parkovkada — va u yerda surat yuklanmay, ekranning
+            o'rtasida bo'shliq qolardi. Bezak uchun qo'yilgan rasm
+            ilovaning eng muhim ekranini begona serverga bog'lab
+            qo'ygan edi. */}
         <View style={styles.carImageWrap}>
-          {/* TODO: haqiqiy avtomobil rasmi (Image source={{uri: ...}}) ulanadi */}
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1560958089-b8a1929cea89?q=80&w=800' }}
-            style={styles.carImage}
-            resizeMode="contain"
-          />
+          <View style={styles.carBadge}>
+            <Car size={44} color={colors.primary} />
+          </View>
         </View>
 
         <Text style={styles.chargingStatus}>Zaryadlanmoqda</Text>
@@ -424,9 +427,13 @@ const createStyles = (colors: ColorPalette) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    carImage: {
-      width: '100%',
-      height: '100%',
+    carBadge: {
+      width: 104,
+      height: 104,
+      borderRadius: radius.pill,
+      backgroundColor: colors.primarySoft,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     chargingStatus: {
       textAlign: 'center',

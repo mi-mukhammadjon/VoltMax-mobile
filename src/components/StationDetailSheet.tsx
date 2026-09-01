@@ -19,6 +19,8 @@ import { showAlert } from '@/services/alert';
 import { AmenityIcon } from '@/components/AmenityIcon';
 import ConnectorRow from '@/components/ConnectorRow';
 import { openRouteTo } from '@/services/directions';
+import { StationsAPI } from '@/services/api';
+import { describeError } from '@/services/errors';
 import { formatSom } from '@/utils/money';
 
 interface Props {
@@ -122,8 +124,27 @@ export default function StationDetailSheet({
 
   const handleReport = () => {
     setMenuOpen(false);
-    // TODO: backend tayyor bo'lgach StationsAPI.reportIssue(station.id) chaqiriladi
-    showAlert('Rahmat', 'Muammo haqida xabaringiz qabul qilindi.', undefined, 'success');
+    // Ilgari bu yerda hech narsa yuborilmasdi, ekranda esa «xabaringiz
+    // qabul qilindi» deb yozilardi. Buzuq charger oldida turgan odam
+    // operator endi biladi deb o'ylab ketardi — ishlamaydigan
+    // tugmadan yomonroq.
+    StationsAPI.report(station.id)
+      .then((res) => {
+        // Allaqachon ma'lum bo'lgan muammo uchun «xabar qildik» deyish
+        // ham noto'g'ri bo'lardi: odam o'zi aniqlagan deb o'ylardi
+        const known = res.data?.alreadyKnown;
+        showAlert(
+          'Rahmat',
+          known
+            ? 'Bu muammo allaqachon ma’lum va ustida ishlanmoqda.'
+            : 'Xabaringiz operatorga yetkazildi.',
+          undefined,
+          'success'
+        );
+      })
+      .catch((err) =>
+        showAlert('Xatolik', describeError(err, 'Xabarni yuborib bo‘lmadi'),
+                  undefined, 'error'));
   };
 
   return (

@@ -143,6 +143,12 @@ export const AvatarAPI = {
 };
 
 export const StationsAPI = {
+  // Nosozlik haqida xabar. Javobdagi `alreadyKnown` — muammo
+  // allaqachon ma'lum ekanini bildiradi va ilova javobni shunga qarab
+  // yozadi: bilinganini «xabar qildik» deb ko'rsatish noto'g'ri
+  // bo'lardi.
+  report: (stationId: string, note = '') =>
+    apiClient.post(`/stations/${stationId}/report/`, { note }),
   list: () => apiClient.get('/stations/'),
   getById: (id: string) => apiClient.get(`/stations/${id}/`),
   // Promo-kod sessiya boshlashdan OLDIN tekshiriladi va yangi narx

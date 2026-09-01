@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   useFonts,
   Manrope_400Regular,
@@ -43,11 +44,16 @@ export default function App() {
   }
 
   return (
-    <>
+    // `SafeAreaProvider` SHART: usiz `useSafeAreaInsets()` hamma joyda
+    // nol qaytaradi. Natijasi jimgina bo'ladi — ekran ochiladi, hech
+    // qanday xato chiqmaydi, faqat sarlavha tizim soati ustiga
+    // chizilgan bo'ladi. Aynan shunday bo'lgan: asosiy ekranda
+    // foydalanuvchining ismi soat bilan ustma-ust tushgan.
+    <SafeAreaProvider>
       <StatusBar style={scheme === 'light' ? 'dark' : 'light'} />
       <AppNavigator />
       <CustomAlert />
-    </>
+    </SafeAreaProvider>
   );
 }
 

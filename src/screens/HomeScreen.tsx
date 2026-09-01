@@ -9,7 +9,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, CompositeNavigationProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,7 +30,7 @@ import { Station, SessionInsights } from '@/types';
 import { typography, spacing, radius, shadow, useThemeColors, ColorPalette } from '@/theme';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import { StationsAPI, WalletAPI, SessionsAPI, AuthAPI } from '@/services/api';
+import { StationsAPI, WalletAPI, SessionsAPI, AuthAPI, NotificationsAPI } from '@/services/api';
 import { subscribeToStationUpdates } from '@/services/liveUpdates';
 import { subscribeToNetwork, useIsOnline } from '@/services/network';
 import OfflineBanner from '@/components/OfflineBanner';
@@ -86,6 +86,7 @@ export default function HomeScreen() {
   const online = useIsOnline();
 
   const [insights, setInsights] = useState<SessionInsights | null>(null);
+  const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -103,6 +104,11 @@ export default function HomeScreen() {
         setName(res.data.name ?? null);
         setAvatarUrl(res.data.avatarUrl ?? null);
       }),
+      // O'qilmagan xabarlar soni: qo'ng'iroqchadagi nuqta shunga qarab
+      // chiziladi. Ilgari u DOIM qizil turardi va shu sababli hech
+      // narsa bildirmasdi — har doim yonib turgan chiroqqa hech kim
+      // qaramaydi.
+      NotificationsAPI.list().then((res) => setUnread(res.data.unread ?? 0)),
     ]);
     setLoading(false);
   }, [setStations, setWalletBalance, setName, setAvatarUrl]);
@@ -119,6 +125,18 @@ export default function HomeScreen() {
   useEffect(() => subscribeToNetwork((online) => {
     if (online) load();
   }), [load]);
+
+  // Xabarlarni o'qib qaytgan odam nuqta hamon qizil turganini ko'radi
+  // va bu ilova xabarni yo'qotdi degan taassurot qoldiradi. Shuning
+  // uchun ekranga qaytilganda faqat SHU son qayta so'raladi — butun
+  // boshqaruv panelini yangilash har tab almashganda ortiqcha bo'lardi.
+  useFocusEffect(
+    useCallback(() => {
+      NotificationsAPI.list()
+        .then((res) => setUnread(res.data.unread ?? 0))
+        .catch(() => undefined);
+    }, [])
+  );
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -192,7 +210,7 @@ export default function HomeScreen() {
           onPress={() => navigation.navigate('Notifications')}
         >
           <Bell size={19} color={colors.textPrimary} />
-          <View style={styles.bellDot} />
+          {unread > 0 && <View style={styles.bellDot} />}
         </TouchableOpacity>
       </View>
 
