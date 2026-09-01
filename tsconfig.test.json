@@ -1,0 +1,24 @@
+{
+  // Sinovlar uchun alohida yig'ish: servis va do'kon fayllari oddiy
+  // CommonJS ga o'giriladi va Node ularni to'g'ridan-to'g'ri yuklay
+  // oladi. Ilovaning o'zi Metro bilan yig'iladi — bu unga tegmaydi.
+  //
+  // Faqat MANTIQ sinaladi: ekranlar (`.tsx`) bu yerga kirmaydi, ular
+  // React ni va butun RN muhitini talab qiladi. Xatolar esa odatda
+  // mantiqda bo'ladi — token yangilash, sessiya oqimi, qayta ulanish.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "outDir": ".test-build",
+    "rootDir": "src",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "noEmitOnError": false,
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] }
+  },
+  "include": ["src/services/**/*.ts", "src/store/**/*.ts", "src/utils/**/*.ts", "src/types/**/*.ts"]
+}

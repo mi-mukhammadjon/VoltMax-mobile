@@ -55,6 +55,10 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
+// Tokenni YANGILAB qayta urinish ma'nosiz bo'lgan manzillar: ular
+// tokenni o'zi beradi yoki umuman token talab qilmaydi.
+const NO_RETRY = ['/auth/send-otp/', '/auth/verify-otp/', '/auth/token/'];
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -65,8 +69,18 @@ apiClient.interceptors.response.use(
     if (status !== 401 || !original || original._retried) {
       return Promise.reject(error);
     }
-    // Kirish so'rovlarining o'zi qayta urinilmaydi
-    if (typeof original.url === 'string' && original.url.includes('/auth/')) {
+    // Kirish so'rovlarining o'zi qayta urinilmaydi: ular token
+    // OLADI, ya'ni tokenni yangilashga urinish ma'nosiz halqa bo'lardi.
+    //
+    // Ilgari bu yerda butun `/auth/` yo'li tekshirilardi va bu jiddiy
+    // xato edi: `/auth/profile/`, `/auth/vehicles/`, `/auth/avatar/`
+    // ham shu yo'lda. Ya'ni token eskirganda profil yoki mashinalar
+    // ekrani jimgina xato berardi — token yangilanmasdi.
+    //
+    // Kirish tokeni endi bir soat yashaydi (ilgari bir hafta edi), ya'ni
+    // bu holat kunda bir necha marta uchraydi.
+    if (typeof original.url === 'string'
+        && NO_RETRY.some((path) => original.url.includes(path))) {
       return Promise.reject(error);
     }
 

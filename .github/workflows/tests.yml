@@ -1,0 +1,39 @@
+# Har push va PR'da tip tekshiruvi va mantiq sinovlari.
+#
+# Nima uchun kerak: ilovada uzoq vaqt birorta sinov yo'q edi — faqat
+# `tsc` tipni tekshirardi. Ya'ni mantiq buzilsa buni faqat telefonda
+# ochib ko'rgandagina bilardik.
+#
+# Sinovlar tarmoqqa chiqmaydi (`axios` almashtiriladi), shuning uchun
+# hech qanday maxfiy kalit kerak emas.
+
+name: Sinovlar
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Bog'liqliklarni o'rnatish
+        # `npm ci` — `package-lock.json` bo'yicha aniq versiyalar
+        run: npm ci
+
+      - name: Tiplar
+        run: npm run typecheck
+
+      - name: Mantiq sinovlari
+        run: npm test

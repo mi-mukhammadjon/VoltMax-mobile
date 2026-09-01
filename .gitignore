@@ -19,3 +19,6 @@ ios/
 .claude/
 .agents/
 skills-lock.json
+
+# Sinovlar uchun vaqtinchalik yig'ma (npm test)
+.test-build/

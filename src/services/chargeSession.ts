@@ -70,10 +70,25 @@ export async function startChargingSession(
       options?.onStage?.('awaiting_plug');
     }
 
-    const activeRes = await SessionsAPI.getActive();
-    if (activeRes.status === 200 && activeRes.data) {
-      options?.onStage?.('started');
-      return activeRes.data as ChargingSession;
+    // Tarmoq uzilishi butun oqimni to'xtatmasligi kerak.
+    //
+    // Bu yerda charger allaqachon buyruqni olgan bo'lishi mumkin va
+    // sessiya HAQIQATAN boshlangan bo'lishi mumkin. Bitta yo'qolgan
+    // paketdan keyin "xato" deb chiqib ketsak, foydalanuvchi
+    // zaryadlash boshlanmadi deb o'ylaydi — hisobdan esa pul
+    // yechilaveradi.
+    //
+    // Shuning uchun xato yutiladi va muddat tugagunicha urinib
+    // ko'riladi. Muddat tugasa `ChargerTimeoutError` chiqadi va u
+    // foydalanuvchiga tushunarli aytiladi.
+    try {
+      const activeRes = await SessionsAPI.getActive();
+      if (activeRes.status === 200 && activeRes.data) {
+        options?.onStage?.('started');
+        return activeRes.data as ChargingSession;
+      }
+    } catch (err) {
+      // Keyingi urinishda yana so'raladi
     }
   }
   throw new ChargerTimeoutError("Charger javob bermadi, birozdan so'ng qayta urinib ko'ring");

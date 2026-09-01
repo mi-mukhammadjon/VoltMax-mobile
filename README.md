@@ -119,8 +119,24 @@ so'rov 401 olsa, ular bitta yangilashni kutadi.
 ## Tekshirish
 
 ```bash
-npx tsc --noEmit
+npm run typecheck     # tiplar
+npm test              # mantiq sinovlari
 ```
+
+Sinovlar ilovaning MANTIG'INI tekshiradi: token yangilash va rotatsiya,
+sessiyani boshlash oqimi (202 → kutish → sessiya), tarmoq uzilishiga
+chidamlilik, qayta ulanish oralig'i, chiqish. Aynan shu joylarda xato
+qimmatga tushadi.
+
+Ekranlar sinalmaydi — ular React va butun RN muhitini talab qiladi,
+xatolar esa deyarli har doim mantiqda bo'ladi.
+
+Sinovlar **tarmoqqa chiqmaydi**: `axios` almashtiriladi va har so'rovga
+qanday javob berish sinovning o'zida yoziladi. Shuning uchun ular
+serversiz ham ishlaydi va CI'da maxfiy kalit talab qilmaydi.
+
+Har push'da GitHub Actions ularni avtomatik o'tkazadi
+(`.github/workflows/tests.yml`).
 
 Backend tomonidagi API sinovlari `voltmax-backend/test_mobile_api.py` da —
 ilova ishlatadigan har bir manzil o'sha yerda tekshiriladi.
