@@ -13,16 +13,18 @@ import {
   Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
-import { Plus, ArrowDownLeft, ArrowUpRight, X } from 'lucide-react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Plus, ArrowDownLeft, ArrowUpRight, X, CreditCard, ChevronRight } from 'lucide-react-native';
 import { typography, spacing, radius, shadow, useThemeColors, ColorPalette } from '@/theme';
-import { WalletAPI } from '@/services/api';
-import { Transaction, WalletBalance } from '@/types';
+import { WalletAPI, CardsAPI } from '@/services/api';
+import { Transaction, WalletBalance, SavedCard } from '@/types';
 import ScreenHeader from '@/components/ScreenHeader';
 import { showAlert } from '@/services/alert';
 import { useAppStore } from '@/store/useAppStore';
 import { describeError } from '@/services/errors';
 import { formatSom, groupSomInput, parseSomInput, somInputToNumber } from '@/utils/money';
+import { RootStackParamList } from '@/navigation/types';
 
 // Ekran 5: Hamyon / to'lov
 //
@@ -30,6 +32,11 @@ import { formatSom, groupSomInput, parseSomInput, somInputToNumber } from '@/uti
 // havola brauzerda ochiladi -> foydalanuvchi to'laydi. Balans SHU YERDA
 // oshmaydi: pul kelganini faqat to'lov tizimi tasdiqlaydi va u haqda
 // serverga xabar beradi. Shuning uchun ilovaga qaytgach holat so'raladi.
+//
+// Biriktirilgan karta bo'lsa oqim BOSHQACHA: brauzer ham, qaytish ham
+// yo'q, server javob berganda pul allaqachon yechilgan. Bu ikkisi
+// atayin ajratilgan — birinchisida balansga ishonib bo'lmaydi,
+// ikkinchisida esa ishonsa bo'ladi.
 
 const TOPUP_PRESETS = [50000, 100000, 200000];
 
@@ -80,6 +87,8 @@ export default function WalletScreen() {
   const [amountFocused, setAmountFocused] = useState(false);
   const [topUpLoading, setTopUpLoading] = useState(false);
   const [providers, setProviders] = useState<{ code: string; name: string }[]>([]);
+  const [cards, setCards] = useState<SavedCard[]>([]);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   // To'lovdan qaytgach shu buyurtma holati so'raladi
   // Do'kondan: foydalanuvchi to'lash uchun brauzerga o'tganda tizim
   // ilovani xotiradan chiqarib yuborishi mumkin. Ekran holatida
@@ -104,6 +113,9 @@ export default function WalletScreen() {
       WalletAPI.getProviders()
         .then((res) => setProviders(res.data.results ?? []))
         .catch(() => setProviders([]));
+      CardsAPI.list()
+        .then((res) => setCards(res.data.results ?? []))
+        .catch(() => setCards([]));
 
       // To'lov sahifasidan qaytilgan bo'lsa natijani tekshiramiz: pul
       // kelgani haqida xabarni server oladi, ilova emas
@@ -159,6 +171,31 @@ export default function WalletScreen() {
     }
   };
 
+  // Asosiy karta: bir bosishda to'ldirish uchun
+  const defaultCard = cards.find((card) => card.isDefault && card.isUsable)
+    ?? cards.find((card) => card.isUsable);
+
+  const handleCardTopUp = async () => {
+    if (!amount || topUpLoading || !defaultCard) return;
+
+    setTopUpLoading(true);
+    try {
+      const res = await CardsAPI.charge(defaultCard.id, somInputToNumber(amount));
+      setTopUpVisible(false);
+      setAmount('');
+      // Server javob berganda pul yechilib bo'lgan: to'lov havolasidan
+      // farqli o'laroq bu yerda tasdiqni kutish shart emas
+      showAlert("To'landi", `${formatSom(res.data.amount)} so'm qo'shildi`,
+                undefined, 'success');
+      loadWallet();
+    } catch (err: any) {
+      showAlert('Xatolik', describeError(err, "To'ldirib bo'lmadi"),
+                undefined, 'error');
+    } finally {
+      setTopUpLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
@@ -199,14 +236,27 @@ export default function WalletScreen() {
               </Text>
             </View>
 
-            <View style={styles.paymentMethodsRow}>
-              <TouchableOpacity style={styles.paymentMethod} activeOpacity={0.8}>
-                <Text style={styles.paymentMethodText}>Payme</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.paymentMethod} activeOpacity={0.8}>
-                <Text style={styles.paymentMethodText}>Click</Text>
-              </TouchableOpacity>
-            </View>
+            {/* Ilgari bu yerda hech qayerga olib bormaydigan «Payme» va
+                «Click» tugmalari turardi. Bosilganda hech nima
+                bo'lmasligi tugmaning o'zi yo'qligidan yomonroq. */}
+            <TouchableOpacity
+              style={styles.cardsRow}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('Cards')}
+            >
+              <View style={styles.cardsIcon}>
+                <CreditCard size={17} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardsTitle}>Kartalarim</Text>
+                <Text style={styles.cardsText}>
+                  {defaultCard
+                    ? `${defaultCard.maskedPan} · bir bosishda to'ldirish`
+                    : "Karta biriktiring va brauzersiz to'ldiring"}
+                </Text>
+              </View>
+              <ChevronRight size={18} color={colors.textMuted} />
+            </TouchableOpacity>
 
             <Text style={styles.sectionLabel}>Oxirgi tranzaksiyalar</Text>
           </>
@@ -263,6 +313,26 @@ export default function WalletScreen() {
               onFocus={() => setAmountFocused(true)}
               onBlur={() => setAmountFocused(false)}
             />
+
+            {/* Biriktirilgan karta birinchi o'rinda: u eng qisqa yo'l.
+                To'lov tizimlari pastda qoladi — karta ishlamasa yoki
+                boshqa karta bilan to'lamoqchi bo'lsa kerak bo'ladi. */}
+            {defaultCard ? (
+              <TouchableOpacity
+                style={[styles.confirmButton, !amount && styles.confirmButtonDisabled]}
+                activeOpacity={0.85}
+                disabled={!amount || topUpLoading}
+                onPress={handleCardTopUp}
+              >
+                {topUpLoading ? (
+                  <ActivityIndicator color={colors.textPrimary} />
+                ) : (
+                  <Text style={styles.confirmButtonText}>
+                    {defaultCard.maskedPan} bilan to'lash
+                  </Text>
+                )}
+              </TouchableOpacity>
+            ) : null}
 
             {/* Bir nechta to'lov tizimi bo'lsa foydalanuvchi tanlaydi —
                 bittasi bo'lsa ortiqcha qadam qo'shmaymiz */}
@@ -346,24 +416,35 @@ const createStyles = (colors: ColorPalette) =>
     balanceUnit: {
       fontSize: typography.size.base,
     },
-    paymentMethodsRow: {
+    cardsRow: {
       flexDirection: 'row',
+      alignItems: 'center',
       gap: spacing.sm,
-      marginBottom: spacing.lg,
-    },
-    paymentMethod: {
-      flex: 1,
       backgroundColor: colors.bgSecondary,
       borderRadius: radius.md,
       borderWidth: 1,
       borderColor: colors.border,
-      paddingVertical: spacing.sm,
-      alignItems: 'center',
+      padding: spacing.md,
+      marginBottom: spacing.lg,
     },
-    paymentMethodText: {
+    cardsIcon: {
+      width: 34,
+      height: 34,
+      borderRadius: radius.sm,
+      backgroundColor: colors.primarySoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cardsTitle: {
       color: colors.textPrimary,
       fontSize: typography.size.sm,
       fontFamily: typography.fontFamily.semibold,
+    },
+    cardsText: {
+      color: colors.textSecondary,
+      fontSize: typography.size.xs,
+      fontFamily: typography.fontFamily.regular,
+      marginTop: 2,
     },
     sectionLabel: {
       color: colors.textSecondary,

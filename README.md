@@ -91,6 +91,31 @@ beradi. Ilovaga qaytgach holat so'raladi.
 
 Sozlanmagan to'lov tizimi ro'yxatda umuman ko'rinmaydi.
 
+### Biriktirilgan kartalar
+
+Karta biriktirilgan bo'lsa oqim boshqacha: brauzer ham, qaytish ham
+yo'q — server javob berganda pul allaqachon yechilgan. Shuning uchun bu
+ikki yo'l kodda ataylab ajratilgan: birinchisida balansga ishonib
+bo'lmaydi, ikkinchisida ishonsa bo'ladi.
+
+**Karta raqami saqlanmaydi.** U `CardsScreen` dan bir marta serverga
+ketadi va o'sha yerdan to'lov tizimiga o'tadi; modal yopilganda holatdan
+ham tozalanadi. Bizda faqat oxirgi to'rt raqam qoladi.
+
+**To'lov tokeni ilovaga umuman chiqmaydi.** Ilova «shu karta bilan
+to'la» deydi, qolganini server qiladi — aks holda tokenni telefondan
+o'g'irlash mumkin bo'lardi.
+
+`test_app.js` buni alohida tekshiradi: karta raqami qo'shish
+so'rovidan boshqa hech qaysi so'rovga tushmasligi shart.
+
+### Avtomatik to'ldirish
+
+Balans chegaradan pastga tushsa kartadan yechiladi — faqat zaryadlash
+ketayotgan foydalanuvchi uchun. Kunlik va oylik chegara **serverda**
+turadi va ekranda faqat ko'rsatiladi: ilovadan o'zgartirilsa, ular
+himoya bo'lishdan to'xtaydi.
+
 ### Narx va promo-kod
 
 Stansiyaning narxi tarif oynasi (tungi tarif) va avtomatik aksiyalarni

@@ -737,6 +737,60 @@ async function testLogout() {
         revoked && revoked.refresh === 'refresh-1', revoked);
 }
 
+/* ══ 13. Karta bilan to'ldirish ══════════════════════════════════ */
+async function testCards() {
+  console.log('\n-- Kartalar --');
+
+  reset();
+  load('store/useAuthStore').useAuthStore.setState({ accessToken: 'token' });
+  const { CardsAPI } = load('services/api');
+
+  axiosStub.state.handle = (config) => {
+    if (String(config.url).endsWith('/cards/') && config.method === 'post') {
+      return { status: 201, data: { id: '7', maskedPan: '**** 3456' } };
+    }
+    return { status: 200, data: { results: [] } };
+  };
+
+  const PAN = '8600123456783456';
+  await CardsAPI.add(PAN, '1229', 'payme');
+  await CardsAPI.verify('7', '000000');
+  await CardsAPI.charge('7', 50000);
+  await CardsAPI.list();
+  await CardsAPI.saveAutoTopUp('7', 20000, 50000, true);
+
+  const calls = axiosStub.state.calls;
+  const added = calls.find((c) => c.url === '/wallet/cards/' && c.method === 'post');
+  check('karta qo‘shish so‘rovi ketdi', Boolean(added));
+
+  // Raqam FAQAT bitta so'rovda bo'lishi kerak. Agar u tasdiqlash,
+  // to'lash yoki avtomatik to'ldirish so'roviga ham tushib qolsa,
+  // uni serverda o'chirish ham yordam bermasdi.
+  const leaked = calls.filter(
+    (c) => c !== added && JSON.stringify(c.data ?? {}).includes(PAN)
+  );
+  check('raqam BOSHQA so‘rovlarga tushmadi', leaked.length === 0,
+        leaked.map((c) => c.url).join(', '));
+
+  check('tasdiqlash to‘g‘ri manzilga ketdi',
+        calls.some((c) => c.url === '/wallet/cards/7/verify/'));
+  check('to‘lash to‘g‘ri manzilga ketdi',
+        calls.some((c) => c.url === '/wallet/cards/7/charge/' && c.data?.amount === 50000));
+  check('avtomatik to‘ldirish chegarasi yuborildi',
+        calls.some((c) => c.url === '/wallet/auto-topup/'
+                       && c.data?.threshold === 20000 && c.data?.amount === 50000));
+
+  // Karta ma'lumoti telefonda saqlanmasligi kerak: u har ochilganda
+  // serverdan so'raladi. Saqlansa, o'chirilgan karta ekranda qolardi.
+  reset();
+  const appStore = load('store/useAppStore').useAppStore;
+  const kept = Object.keys(
+    appStore.persist.getOptions().partialize(appStore.getState())
+  );
+  check('kartalar telefonda saqlanmaydi',
+        !kept.some((key) => key.toLowerCase().includes('card')), kept.join(', '));
+}
+
 /* ══ Ishga tushirish ═════════════════════════════════════════════ */
 (async function run() {
   await testTokenRefresh();
@@ -751,6 +805,7 @@ async function testLogout() {
   await testConfig();
   await testSecureStorage();
   await testLogout();
+  await testCards();
 
   console.log('\n' + (failures ? `*** ${failures} TA XATO ***` : 'HAMMASI OK'));
   process.exit(failures ? 1 : 0);

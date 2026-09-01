@@ -192,3 +192,37 @@ export interface SessionInsights {
   savedVsGasoline: number;
   co2SavedKg: number;
 }
+
+/** Biriktirilgan karta.
+ *
+ * To'lov TOKENI bu yerda YO'Q va bo'lmaydi ham: server uni ilovaga
+ * chiqarmaydi. Ilova faqat kartaning raqamini («shu karta bilan
+ * to'la») biladi, pul yechish huquqi serverda qoladi. */
+export interface SavedCard {
+  id: string;
+  maskedPan: string;
+  brand: 'uzcard' | 'humo' | 'visa' | 'mastercard' | 'other';
+  expires: string;
+  state: number;
+  stateLabel: string;
+  isDefault: boolean;
+  isUsable: boolean;
+  providerName: string;
+}
+
+/** Avtomatik to'ldirish sozlamasi.
+ *
+ * Kunlik va oylik chegara SERVERDA belgilanadi — ilova ularni faqat
+ * ko'rsatadi. Avtomatik pul yechishda chegarani foydalanuvchining
+ * qo'liga bersak, u himoya bo'lishdan to'xtaydi. */
+export interface AutoTopUp {
+  enabled: boolean;
+  id?: string;
+  cardId?: number;
+  isActive?: boolean;
+  threshold?: number;
+  amount?: number;
+  dailyLimit?: number;
+  monthlyLimit?: number;
+  blockedReason?: string;
+}

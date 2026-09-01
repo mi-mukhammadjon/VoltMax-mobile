@@ -240,3 +240,29 @@ export const WalletAPI = {
     apiClient.post('/wallet/topup/', { amount, provider }),
   getPaymentStatus: (orderId: number) => apiClient.get(`/wallet/payments/${orderId}/`),
 };
+
+// Biriktirilgan kartalar: brauzerga o'tmasdan to'ldirish.
+//
+// Karta raqami SAQLANMAYDI — u faqat `addCard` so'rovida bir marta
+// serverga boradi va o'sha yerdan to'lov tizimiga o'tadi. Shuning
+// uchun uni ilovada eslab qolish yoki qayta ishlatish mumkin emas.
+export const CardsAPI = {
+  list: () => apiClient.get('/wallet/cards/'),
+  // Javob 201: karta qo'shildi, ammo hali TASDIQLANMAGAN — bank SMS
+  // kod yuboradi va `verify` chaqirilishi kerak
+  add: (pan: string, expiry: string, provider: string) =>
+    apiClient.post('/wallet/cards/', { pan, expiry, provider }),
+  verify: (cardId: string, code: string) =>
+    apiClient.post(`/wallet/cards/${cardId}/verify/`, { code }),
+  remove: (cardId: string) => apiClient.delete(`/wallet/cards/${cardId}/`),
+  makeDefault: (cardId: string) => apiClient.post(`/wallet/cards/${cardId}/`),
+  // Bu yerda balans DARHOL oshadi: to'lov havolasidan farqli o'laroq
+  // server javob berishdan oldin pulni yechib bo'ladi
+  charge: (cardId: string, amount: number) =>
+    apiClient.post(`/wallet/cards/${cardId}/charge/`, { amount }),
+
+  getAutoTopUp: () => apiClient.get('/wallet/auto-topup/'),
+  saveAutoTopUp: (cardId: string, threshold: number, amount: number, isActive: boolean) =>
+    apiClient.put('/wallet/auto-topup/', { cardId, threshold, amount, isActive }),
+  removeAutoTopUp: () => apiClient.delete('/wallet/auto-topup/'),
+};

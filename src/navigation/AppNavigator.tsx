@@ -28,6 +28,8 @@ import NotificationSettingsScreen from '@/screens/NotificationSettingsScreen';
 import AboutAppScreen from '@/screens/AboutAppScreen';
 import MyVehiclesScreen from '@/screens/MyVehiclesScreen';
 import MyRfidCardsScreen from '@/screens/MyRfidCardsScreen';
+import CardsScreen from '@/screens/CardsScreen';
+import AutoTopUpScreen from '@/screens/AutoTopUpScreen';
 import MyBookingsScreen from '@/screens/MyBookingsScreen';
 import NewBookingScreen from '@/screens/NewBookingScreen';
 
@@ -175,6 +177,8 @@ export default function AppNavigator() {
         <Stack.Screen name="AboutApp" component={AboutAppScreen} />
         <Stack.Screen name="MyVehicles" component={MyVehiclesScreen} />
         <Stack.Screen name="MyRfidCards" component={MyRfidCardsScreen} />
+        <Stack.Screen name="Cards" component={CardsScreen} />
+        <Stack.Screen name="AutoTopUp" component={AutoTopUpScreen} />
         <Stack.Screen name="MyBookings" component={MyBookingsScreen} />
         <Stack.Screen name="NewBooking" component={NewBookingScreen} />
       </Stack.Navigator>

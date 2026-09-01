@@ -24,6 +24,8 @@ export type RootStackParamList = {
   AboutApp: undefined;
   MyVehicles: undefined;
   MyRfidCards: undefined;
+  Cards: undefined;
+  AutoTopUp: undefined;
   MyBookings: undefined;
   NewBooking: { stationId: string };
 };

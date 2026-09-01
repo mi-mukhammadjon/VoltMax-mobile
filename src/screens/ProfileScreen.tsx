@@ -26,6 +26,7 @@ import {
   CalendarClock,
   Car,
   CreditCard,
+  Nfc,
   History as HistoryIcon,
   Bell,
   Info,
@@ -67,7 +68,8 @@ const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
     items: [
       { label: 'Profilni tahrirlash', screen: 'EditProfile', icon: UserCog },
       { label: 'Transport vositalarim', screen: 'MyVehicles', icon: Car },
-      { label: 'Mening kartalarim', screen: 'MyRfidCards', icon: CreditCard },
+      { label: 'RFID kartalarim', screen: 'MyRfidCards', icon: Nfc },
+      { label: "To'lov kartalari", screen: 'Cards', icon: CreditCard },
     ],
   },
   {
