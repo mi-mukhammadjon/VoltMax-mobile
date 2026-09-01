@@ -74,6 +74,13 @@ const rnStubs = {
     },
   },
   'expo-image-picker': {},
+  // Apparat himoyasidagi ombor — sinovda alohida idishda
+  'expo-secure-store': {
+    isAvailableAsync: async () => secureAvailable,
+    getItemAsync: async (key) => (key in secureStorage ? secureStorage[key] : null),
+    setItemAsync: async (key, value) => { secureStorage[key] = value; },
+    deleteItemAsync: async (key) => { delete secureStorage[key]; },
+  },
 };
 
 /* Axios o'rnini bosuvchi. Har so'rov `routes.handle` ga tushadi va
@@ -84,6 +91,11 @@ const netInfoListeners = new Set();
 
 // Telefondagi saqlash — sinovlar orasida tozalanadi
 const storage = {};
+
+// Apparat himoyasidagi ombor ALOHIDA idishda: sinov tokenlar aynan
+// shu yerga tushganini tekshira olishi kerak
+const secureStorage = {};
+let secureAvailable = true;
 
 function setNetwork(connected, reachable = connected) {
   netInfoListeners.forEach((fn) => fn({
@@ -189,6 +201,8 @@ function reset() {
   axiosStub.state.calls.length = 0;
   axiosStub.state.handle = () => ({ status: 200, data: {} });
   Object.keys(storage).forEach((key) => delete storage[key]);
+  Object.keys(secureStorage).forEach((key) => delete secureStorage[key]);
+  secureAvailable = true;
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -635,7 +649,65 @@ async function testConfig() {
   check("build'da manzilsiz ochiq xato berdi", threw);
 }
 
-/* ══ 11. Chiqish ═════════════════════════════════════════════════ */
+/* ══ 11. Tokenlarni saqlash ══════════════════════════════════════ */
+async function testSecureStorage() {
+  console.log('\n-- Tokenlarni saqlash --');
+
+  reset();
+  const store = load('store/useAuthStore').useAuthStore;
+
+  store.getState().setTokens('access-1', 'refresh-1', '998900000001');
+  store.getState().setName('Aziz');
+  await sleep(20);
+
+  const plain = JSON.stringify(storage);
+  const secure = JSON.stringify(secureStorage);
+
+  // ENG MUHIMI: token shifrlanmagan omborda QOLMASLIGI kerak.
+  // Ilgari u o'sha yerda edi va root qilingan telefonda, `adb backup`
+  // orqali yoki Google Drive zaxirasidan o'qib olinardi — o'ttiz kun
+  // amal qiladigan kalit.
+  check("refresh token oddiy omborda yo'q",
+        !plain.includes('refresh-1'), plain.slice(0, 90));
+  check("access token ham oddiy omborda yo'q",
+        !plain.includes('access-1'));
+  check('tokenlar apparat himoyasida', secure.includes('refresh-1')
+        && secure.includes('access-1'));
+
+  // Maxfiy bo'lmagan ma'lumot odatdagi joyda qoladi: SecureStore
+  // sekinroq va bitta qiymat uchun ~2 KB chegara qo'yadi
+  check('telefon raqami oddiy omborda', plain.includes('998900000001'));
+  check('ism oddiy omborda', plain.includes('Aziz'));
+
+  // O'qishda ikkalasi BIRLASHTIRILADI — ilova qayta ochilganda
+  // foydalanuvchi tizimda qolishi kerak
+  const reopened = load('store/useAuthStore').useAuthStore;
+  await sleep(20);
+  const state = reopened.getState();
+  check('qayta ochilganda token tiklandi',
+        state.refreshToken === 'refresh-1' && state.accessToken === 'access-1',
+        state.refreshToken);
+  check('qayta ochilganda ism ham tiklandi', state.name === 'Aziz', state.name);
+
+  // Chiqishda IKKALA ombor ham tozalanadi
+  reopened.getState().logout();
+  await sleep(20);
+  check('chiqishda apparat ombori ham tozalandi',
+        !JSON.stringify(secureStorage).includes('refresh-1'),
+        JSON.stringify(secureStorage).slice(0, 60));
+
+  // Vebda SecureStore yo'q — ilova baribir ishlashi kerak
+  reset();
+  secureAvailable = false;
+  const web = load('store/useAuthStore').useAuthStore;
+  web.getState().setTokens('access-2', 'refresh-2', '998900000002');
+  await sleep(20);
+  check("SecureStore bo'lmasa ham ishladi",
+        JSON.stringify(storage).includes('refresh-2'));
+  secureAvailable = true;
+}
+
+/* ══ 12. Chiqish ═════════════════════════════════════════════════ */
 async function testLogout() {
   console.log('\n-- Chiqish --');
 
@@ -677,6 +749,7 @@ async function testLogout() {
   await testPush();
   await testPersistence();
   await testConfig();
+  await testSecureStorage();
   await testLogout();
 
   console.log('\n' + (failures ? `*** ${failures} TA XATO ***` : 'HAMMASI OK'));

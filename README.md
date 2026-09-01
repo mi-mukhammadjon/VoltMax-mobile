@@ -128,6 +128,25 @@ esa o'chiradi — telefon boshqa odamga o'tsa, unga avvalgi egasining
 xabarlari kelmasin. Emulyatorda push tokeni berilmaydi, shuning uchun uni
 faqat haqiqiy qurilmada (EAS build) sinash mumkin.
 
+### Tokenlar qayerda saqlanadi
+
+`accessToken` va `refreshToken` **apparat himoyasida**: iOS Keychain,
+Android Keystore (`expo-secure-store`). Ularni boshqa ilova o'qiy
+olmaydi.
+
+Ilgari ular oddiy `AsyncStorage` da edi — shifrlanmagan fayl. Undan
+`refreshToken` ni (o'ttiz kun amal qiladi) uch yo'l bilan olish mumkin
+edi: root qilingan telefonda, `adb backup` orqali va Google Drive
+zaxirasidan. Token o'g'irlansa hujumchi bir oy davomida hisobga to'liq
+kirish oladi.
+
+Telefon raqami, ism va avatar manzili maxfiy emas — ular odatdagi
+joyda qoladi: SecureStore sekinroq va bitta qiymat uchun ~2 KB chegara
+qo'yadi.
+
+`android.allowBackup` ham `false`: qolgan ma'lumot bulutga
+nusxalanmaydi.
+
 ### Token
 
 `access` tokeni tugasa ilova uni o'zi yangilaydi. Bir vaqtda bir necha

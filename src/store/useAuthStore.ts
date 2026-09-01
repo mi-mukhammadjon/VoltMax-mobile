@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createSplitStorage } from '@/services/secureStorage';
 import { unregisterPush } from '@/services/push';
 import { revokeSession } from '@/services/session';
 
@@ -65,7 +65,17 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'voltmax-auth',
-      storage: createJSONStorage(() => AsyncStorage),
+      /* Tokenlar APPARAT himoyasida saqlanadi (iOS Keychain / Android
+         Keystore), qolgani odatdagi joyda.
+
+         Ilgari hammasi shifrlanmagan `AsyncStorage` da edi va
+         `refreshToken` — o'ttiz kun amal qiladigan kalit — root
+         qilingan telefonda, `adb backup` orqali yoki Google Drive
+         zaxirasidan o'qib olinishi mumkin edi. */
+      storage: createJSONStorage(() => createSplitStorage([
+        'accessToken',
+        'refreshToken',
+      ])),
       partialize: (state) => ({
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,

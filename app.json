@@ -30,7 +30,8 @@
         "googleMaps": {
           "apiKey": "AIzaSyAq7bDO7tXrYsffbmdv4bNkrBNMZNIH-uY"
         }
-      }
+      },
+      "allowBackup": false
     },
     "extra": {
       "eas": {
@@ -38,6 +39,9 @@
       },
       "apiUrl": ""
     },
-    "owner": "m.ukhammadjon"
+    "owner": "m.ukhammadjon",
+    "plugins": [
+      "expo-secure-store"
+    ]
   }
 }
