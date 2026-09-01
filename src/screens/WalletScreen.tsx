@@ -20,6 +20,7 @@ import { WalletAPI } from '@/services/api';
 import { Transaction, WalletBalance } from '@/types';
 import ScreenHeader from '@/components/ScreenHeader';
 import { showAlert } from '@/services/alert';
+import { describeError } from '@/services/errors';
 import { formatSom, groupSomInput, parseSomInput, somInputToNumber } from '@/utils/money';
 
 // Ekran 5: Hamyon / to'lov
@@ -141,8 +142,11 @@ export default function WalletScreen() {
       }
       setPendingOrder(res.data.orderId);
     } catch (err: any) {
-      // Server sababni aytadi: chegaradan kam summa, sozlanmagan tizim va h.k.
-      showAlert('Xatolik', err?.response?.data?.detail ?? "To'ldirib bo'lmadi",
+      // `describeError` server matnini birinchi o'ringa qo'yadi
+      // (chegaradan kam summa, sozlanmagan tizim), javob umuman
+      // kelmasa esa internet yo'qligini aytadi — «Xatolik» degan
+      // umumiy so'z ikkalasini yashirardi.
+      showAlert('Xatolik', describeError(err, "To'ldirib bo'lmadi"),
                 undefined, 'error');
     } finally {
       setTopUpLoading(false);

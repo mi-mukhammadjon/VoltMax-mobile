@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Station, ChargingSession, WalletBalance } from '@/types';
 
 const MAX_RECENT_SEARCHES = 6;
@@ -10,6 +12,8 @@ interface AppState {
   favoriteStationIds: string[];
   /** Qidiruv ekranidagi "So'nggi qidiruvlar" chip'lari (faqat xotirada) */
   recentSearches: string[];
+  /** Stansiyalar oxirgi marta qachon serverdan olingani (ms) */
+  stationsSyncedAt: number | null;
 
   setStations: (stations: Station[]) => void;
   setActiveSession: (session: ChargingSession | null) => void;
@@ -19,14 +23,17 @@ interface AppState {
   clearRecentSearches: () => void;
 }
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>()(
+  persist(
+    (set) => ({
   stations: [],
   activeSession: null,
   walletBalance: null,
   favoriteStationIds: [],
   recentSearches: [],
+  stationsSyncedAt: null,
 
-  setStations: (stations) => set({ stations }),
+  setStations: (stations) => set({ stations, stationsSyncedAt: Date.now() }),
   setActiveSession: (session) => set({ activeSession: session }),
   setWalletBalance: (balance) => set({ walletBalance: balance }),
   toggleFavoriteStation: (stationId) =>
@@ -44,4 +51,30 @@ export const useAppStore = create<AppState>((set) => ({
       ),
     })),
   clearRecentSearches: () => set({ recentSearches: [] }),
-}));
+    }),
+    {
+      name: 'voltmax-app',
+      storage: createJSONStorage(() => AsyncStorage),
+      /* Nima saqlanadi va NIMA UCHUN:
+
+         `favoriteStationIds` — ilgari faqat xotirada edi va ilova
+         yopilganda sevimlilar YO'QOLARDI. Bu shunchaki xato edi.
+
+         `stations` va `walletBalance` — aloqa yo'q paytda ekran bo'sh
+         qolmasin. Zaryadlash stansiyalari ko'pincha yerto'la
+         parkovkada bo'ladi va u yerda aloqa yomon; eski ma'lumot
+         hech narsadan yaxshiroq, faqat u eskiligi aytilishi kerak
+         (`stationsSyncedAt`).
+
+         `activeSession` SAQLANMAYDI: u tez o'zgaradi va eskisini
+         ko'rsatish chalg'itadi — foydalanuvchi tugagan sessiyani
+         ketayotgan deb o'ylardi. */
+      partialize: (state) => ({
+        favoriteStationIds: state.favoriteStationIds,
+        stations: state.stations,
+        walletBalance: state.walletBalance,
+        stationsSyncedAt: state.stationsSyncedAt,
+      }),
+    }
+  )
+);

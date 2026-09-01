@@ -61,11 +61,32 @@ const rnStubs = {
     setNotificationChannelAsync: async () => {},
   },
   'expo-device': { isDevice: true },
+  // NetInfo: sinov holatni O'ZI boshqaradi
+  '@react-native-community/netinfo': {
+    __esModule: true,
+    default: {
+      addEventListener: (fn) => {
+        netInfoListeners.add(fn);
+        return () => netInfoListeners.delete(fn);
+      },
+    },
+  },
   'expo-image-picker': {},
 };
 
 /* Axios o'rnini bosuvchi. Har so'rov `routes.handle` ga tushadi va
    javobni sinovning o'zi belgilaydi. */
+// NetInfo obunachilari — sinov ular orqali "aloqa yo'qoldi/tiklandi"
+// deb xabar beradi
+const netInfoListeners = new Set();
+
+function setNetwork(connected, reachable = connected) {
+  netInfoListeners.forEach((fn) => fn({
+    isConnected: connected,
+    isInternetReachable: reachable,
+  }));
+}
+
 const axiosStub = createAxiosStub();
 
 function createAxiosStub() {
@@ -200,7 +221,7 @@ async function testTokenRefresh() {
   };
 
   const res = await attempt(apiClient.get('/auth/profile/'));
-  check('401 dan keyin token yangilandi va so\'rov takrorlandi',
+  check("401 dan keyin token yangilandi va so\'rov takrorlandi",
         res.ok && res.value.data?.ok === true, res.reason || '');
   check('yangilash bir marta chaqirildi', refreshCalls === 1, refreshCalls);
 
@@ -243,7 +264,7 @@ async function testSingleFlight() {
     apiClient.get('/bookings/'),
   ]);
 
-  check('uchala so\'rov ham muvaffaqiyatli',
+  check("uchala so\'rov ham muvaffaqiyatli",
         all.every((r) => r.data?.ok === true));
   check('yangilash FAQAT BIR MARTA yuborildi', refreshCalls === 1, refreshCalls);
 }
@@ -422,7 +443,92 @@ async function testReconnect() {
   delete global.WebSocket;
 }
 
-/* ══ 6. Chiqish ══════════════════════════════════════════════════ */
+/* ══ 6. Tarmoq holati ════════════════════════════════════════════ */
+async function testNetwork() {
+  console.log('\n-- Tarmoq holati --');
+
+  reset();
+  netInfoListeners.clear();
+  const net = load('services/network');
+
+  check('boshida ulangan deb hisoblanadi', net.isOnline() === true);
+
+  const seen = [];
+  const stop = net.subscribeToNetwork((online) => seen.push(online));
+
+  setNetwork(false);
+  check('uzilish aniqlandi', net.isOnline() === false);
+  check('obunachiga xabar berildi', seen.join(',') === 'false', seen);
+
+  setNetwork(true);
+  check('tiklanish aniqlandi', net.isOnline() === true);
+  check('tiklanish haqida ham xabar berildi',
+        seen.join(',') === 'false,true', seen);
+
+  // Wi-Fi bor, lekin internet yo'q (mehmonxona tarmog'i, kirish sahifasi)
+  setNetwork(true, false);
+  check("internetsiz Wi-Fi ham \"aloqa yo'q\" deb hisoblandi",
+        net.isOnline() === false);
+
+  // Tizim "ulangan" desa ham server javob bermasligi mumkin
+  setNetwork(true);
+  net.noteRequestFailure({ message: 'Network Error' });
+  check("javobsiz so'rov aloqani uzilgan deb belgiladi",
+        net.isOnline() === false);
+
+  // Serverning RAD JAVOBI aloqa yo'q degani emas
+  net.noteRequestSuccess();
+  net.noteRequestFailure({ response: { status: 400 } });
+  check('400 javob aloqani uzilgan deb belgilamadi', net.isOnline() === true);
+
+  // Obuna bekor qilingach YANGI xabar kelmasligi kerak. Oldingi
+  // yozuvlar bilan solishtirish noto'g'ri bo'lardi: oraliqda yana
+  // bir necha o'zgarish bo'lgan.
+  const before = seen.length;
+  stop();
+  setNetwork(true);
+  setNetwork(false);
+  check('obuna bekor qilingach xabar kelmadi',
+        seen.length === before, `${before} -> ${seen.length}`);
+
+  netInfoListeners.clear();
+}
+
+/* ══ 7. Xato matnlari ════════════════════════════════════════════ */
+async function testErrorMessages() {
+  console.log('\n-- Xato matnlari --');
+
+  reset();
+  const { describeError } = load('services/errors');
+
+  // Server aytgan sabab har doim ustun: u aniqroq
+  check('server matni ustun',
+        describeError({ response: { status: 400, data: { detail: "Mablag' yetarli emas" } } })
+        === "Mablag' yetarli emas");
+
+  // Eng ko'p uchraydigan holat — javob umuman kelmadi
+  const offline = describeError({ message: 'Network Error' });
+  check('internetsiz holat aytildi',
+        offline.toLowerCase().includes('internet'), offline);
+
+  const slow = describeError({ code: 'ECONNABORTED', message: 'timeout' });
+  check('kutish muddati alohida aytildi',
+        slow.toLowerCase().includes('sekin') || slow.toLowerCase().includes('javob bermadi'),
+        slow);
+
+  check('server nosozligi alohida',
+        describeError({ response: { status: 503 } }).toLowerCase().includes('nosozlik'));
+  check('ruxsat xatosi alohida',
+        describeError({ response: { status: 401 } }).toLowerCase().includes('ruxsat'));
+  check("so'rovlar chegarasi alohida",
+        describeError({ response: { status: 429 } }).toLowerCase().includes('urinish'));
+
+  // Noma'lum holat uchun chaqiruvchi bergan matn
+  check('zaxira matn ishlatildi',
+        describeError({ response: { status: 418 } }, 'Boshqa xato') === 'Boshqa xato');
+}
+
+/* ══ 8. Chiqish ══════════════════════════════════════════════════ */
 async function testLogout() {
   console.log('\n-- Chiqish --');
 
@@ -443,7 +549,7 @@ async function testLogout() {
   await sleep(10);
 
   const after = store.getState();
-  check('token o\'chirildi', after.accessToken === null && after.refreshToken === null);
+  check("token o\'chirildi", after.accessToken === null && after.refreshToken === null);
   check('ism va rasm ham tozalandi',
         after.name === null && after.avatarUrl === null);
   // Faqat telefondagi nusxani o'chirish yetarli emas edi: server
@@ -459,6 +565,8 @@ async function testLogout() {
   await testNoRetryList();
   await testChargingFlow();
   await testReconnect();
+  await testNetwork();
+  await testErrorMessages();
   await testLogout();
 
   console.log('\n' + (failures ? `*** ${failures} TA XATO ***` : 'HAMMASI OK'));

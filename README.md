@@ -104,6 +104,23 @@ tekshiriladi: kod yaroqli bo'lsa yangi narx darhol ko'rsatiladi.
 Tekshirilmagan kod serverga yuborilmaydi, chunki yaroqsiz kod bilan
 server sessiyani umuman boshlamaydi.
 
+### Aloqa yo'q bo'lganda
+
+Zaryadlash stansiyalari ko'pincha yerto'la parkovkada bo'ladi va u
+yerda aloqa yomon — ya'ni ilova aynan **eng kerak bo'lgan joyda**
+sinovdan o'tadi.
+
+Shuning uchun stansiyalar ro'yxati, hamyon qoldig'i va sevimlilar
+telefonda saqlanadi: ekran bo'sh qolmaydi. Yuqorida esa aloqa yo'qligi
+va ma'lumot **qanchalik eskiligi** aytiladi — eski ma'lumotni yangi
+deb ko'rsatish yolg'on bo'lardi va odam bo'sh stansiyaga borib qolardi.
+
+Aloqa tiklanganda ekranlar ma'lumotni o'zi qayta so'raydi.
+
+Xato xabarlari ham ajratilgan: internet yo'qligi va serverning rad
+javobi butunlay boshqa narsa — birinchisida odam joyini o'zgartiradi,
+ikkinchisida qilgan ishini.
+
 ### Push xabarlar
 
 Ilova tizimga kirgandan keyin push manzilini serverga yuboradi, chiqishda

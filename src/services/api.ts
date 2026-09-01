@@ -2,6 +2,7 @@ import axios from 'axios';
 
 import { useAuthStore } from '@/store/useAuthStore';
 import { API_BASE_URL, TOKEN_REFRESH_URL } from './config';
+import { noteRequestFailure, noteRequestSuccess } from './network';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -60,10 +61,18 @@ async function refreshAccessToken(): Promise<string | null> {
 const NO_RETRY = ['/auth/send-otp/', '/auth/verify-otp/', '/auth/token/'];
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Har muvaffaqiyatli javob aloqa borligini tasdiqlaydi
+    noteRequestSuccess();
+    return response;
+  },
   async (error) => {
     const original = error.config;
     const status = error.response?.status;
+
+    // Javobsiz xato — server umuman javob bermadi. Tizim "ulangan"
+    // desa ham (Wi-Fi bor, internet yo'q) buni shu yerda bilamiz.
+    noteRequestFailure(error);
 
     // Faqat 401 va faqat BIR MARTA: ikkinchi 401 haqiqiy ruxsat xatosi
     if (status !== 401 || !original || original._retried) {

@@ -32,6 +32,7 @@ import UnderlineTabs from '@/components/UnderlineTabs';
 import PrimaryButton from '@/components/PrimaryButton';
 import { useAppStore } from '@/store/useAppStore';
 import { showAlert } from '@/services/alert';
+import { describeError } from '@/services/errors';
 import { openRouteTo } from '@/services/directions';
 import { formatSom } from '@/utils/money';
 
@@ -221,8 +222,12 @@ export default function StationDetailScreen({ route }: Props) {
       navigation.navigate('ChargingSession', { sessionId: session.id });
     } catch (err: any) {
       if (!(err instanceof ChargingCancelledError)) {
-        const detail = err instanceof ChargerTimeoutError ? err.message : err?.response?.data?.detail;
-        showAlert('Xatolik', detail || "Zaryadlashni boshlab bo'lmadi", undefined, 'error');
+        // Charger kutish muddati alohida: uning matni allaqachon
+        // tushunarli va uni almashtirish kerak emas
+        const detail = err instanceof ChargerTimeoutError
+          ? err.message
+          : describeError(err, "Zaryadlashni boshlab bo'lmadi");
+        showAlert('Xatolik', detail, undefined, 'error');
       }
     } finally {
       setStarting(false);

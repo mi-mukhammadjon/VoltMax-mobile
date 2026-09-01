@@ -11,6 +11,8 @@ import { typography, spacing, radius, useThemeColors, ColorPalette } from '@/the
 import { useAppStore } from '@/store/useAppStore';
 import { StationsAPI } from '@/services/api';
 import { subscribeToStationUpdates } from '@/services/liveUpdates';
+import { subscribeToNetwork, useIsOnline } from '@/services/network';
+import OfflineBanner from '@/components/OfflineBanner';
 import StationListCard from '@/components/StationListCard';
 import StationFilterSheet, {
   StationFilters,
@@ -43,6 +45,8 @@ export default function StationsListScreen() {
   const [filters, setFilters] = useState<StationFilters>(DEFAULT_FILTERS);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const stationsSyncedAt = useAppStore((s) => s.stationsSyncedAt);
+  const online = useIsOnline();
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
@@ -61,6 +65,11 @@ export default function StationsListScreen() {
     const unsubscribe = subscribeToStationUpdates(load);
     return unsubscribe;
   }, [load]);
+
+  // Aloqa tiklanganda ro'yxat o'zi yangilanadi
+  useEffect(() => subscribeToNetwork((online) => {
+    if (online) load();
+  }), [load]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -127,6 +136,10 @@ export default function StationsListScreen() {
           />
         </View>
       </View>
+
+      {/* Ro'yxat saqlangan ma'lumotdan ko'rinadi, lekin u ESKI —
+          buni aytmasak foydalanuvchi bo'sh stansiyaga borib qolardi */}
+      {!online && <OfflineBanner syncedAt={stationsSyncedAt} onRetry={handleRefresh} />}
 
       {loading ? (
         <View style={styles.skeletonWrap}>

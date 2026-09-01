@@ -32,6 +32,8 @@ import { useAppStore } from '@/store/useAppStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { StationsAPI, WalletAPI, SessionsAPI, AuthAPI } from '@/services/api';
 import { subscribeToStationUpdates } from '@/services/liveUpdates';
+import { subscribeToNetwork, useIsOnline } from '@/services/network';
+import OfflineBanner from '@/components/OfflineBanner';
 import SearchField from '@/components/SearchField';
 import SectionHeader from '@/components/SectionHeader';
 import Card from '@/components/Card';
@@ -80,6 +82,8 @@ export default function HomeScreen() {
   const name = useAuthStore((s) => s.name);
   const setName = useAuthStore((s) => s.setName);
   const setAvatarUrl = useAuthStore((s) => s.setAvatarUrl);
+  const stationsSyncedAt = useAppStore((s) => s.stationsSyncedAt);
+  const online = useIsOnline();
 
   const [insights, setInsights] = useState<SessionInsights | null>(null);
   const [loading, setLoading] = useState(true);
@@ -108,6 +112,13 @@ export default function HomeScreen() {
     const unsubscribe = subscribeToStationUpdates(load);
     return unsubscribe;
   }, [load]);
+
+  // Aloqa TIKLANGANDA ma'lumot o'zi yangilanadi. Aks holda
+  // foydalanuvchi qo'lda tortib yangilashi kerak bo'lardi va
+  // ko'pchilik buni qilmaydi — ular ilovani "buzilgan" deb yopadi.
+  useEffect(() => subscribeToNetwork((online) => {
+    if (online) load();
+  }), [load]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -160,6 +171,13 @@ export default function HomeScreen() {
         />
       }
     >
+      {/* Aloqa yo'q bo'lsa — sabab va ma'lumot qanchalik eskiligi.
+          Ilgari ekran shunchaki bo'sh qolardi va foydalanuvchi
+          sababini bilmasdi. */}
+      {!online && (
+        <OfflineBanner syncedAt={stationsSyncedAt} onRetry={handleRefresh} />
+      )}
+
       {/* Salomlashuv */}
       <View style={styles.header}>
         <View style={styles.headerText}>
